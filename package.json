@@ -1,16 +1,17 @@
 {
-  "name": "@hermez/common",
-  "version": "1.0.0",
-  "description": "hermez common types js implementation",
+  "name": "@hermeznetwork/commonjs",
+  "version": "0.0.1",
+  "description": "hermez network common js implementation",
   "main": "index.js",
   "directories": {
     "test": "test"
   },
   "scripts": {
-    "test": "npx mocha ./test/*.test.js",
-    "eslint": "npx eslint src/**"
+    "setup": "npm i",
+    "eslint": "npx eslint src/**",
+    "test": "npx mocha ./test/*.test.js"
   },
-  "author": "",
+  "author": "HermezDAO",
   "keywords": [
     "hermez",
     "rollup",
