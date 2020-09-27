@@ -1,0 +1,10 @@
+module.exports.float16 = require("./src/float16");
+module.exports.HermezAccount = require("./src/hermez-account");
+module.exports.txUtils = require("./src/tx-utils");
+module.exports.stateUtils = require("./src/state-utils");
+module.exports.utils = require("./src/utils");
+module.exports.feeTable = require("./src/fee-table");
+module.exports.SMTTmpDb = require("./src/smt-tmp-db");
+module.exports.Constants = require("./src/constants");
+module.exports.RollupDB = require("./src/rollup-db");
+module.exports.BatchBuilder = require("./src/batch-builder");
