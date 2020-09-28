@@ -8,3 +8,4 @@ module.exports.SMTTmpDb = require("./src/smt-tmp-db");
 module.exports.Constants = require("./src/constants");
 module.exports.RollupDB = require("./src/rollup-db");
 module.exports.BatchBuilder = require("./src/batch-builder");
+module.exports.withdrawUtils = require("./src/withdraw-utils");

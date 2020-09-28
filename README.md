@@ -2,6 +2,8 @@
 Javascript library implementing common utilities for [hermez network](https://hermez.io/)
 
 ![Main CI](https://github.com/hermeznetwork/commonjs/workflows/Main%20CI/badge.svg)
+![npm](https://img.shields.io/npm/v/@hermeznetwork/commonjs)
+![license](https://img.shields.io/github/license/hermeznetwork/commonjs)
 
 ## Usage
 ```
