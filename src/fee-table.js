@@ -6,7 +6,7 @@ const Scalar = require("ffjavascript").Scalar;
 const bitsShiftPrecision = 60;
 
 // fee limit bits
-// maximum amount that the fee to apply could have is (2**129 - 1)
+// maximum amount that the fee to apply could have is (2**128 - 1)
 const feeLimitBits = 128;
 const maxFeeValue = Scalar.sub(Scalar.shl(1, feeLimitBits),1);
 

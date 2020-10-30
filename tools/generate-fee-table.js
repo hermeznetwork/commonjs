@@ -150,5 +150,5 @@ for (let i = 0; i < realFee.length; i++){
     console.log(`FeeStep ${i}: `, `${realFee[i]} %`);
 }
 
-const fs = require("fs");
-fs.writeFileSync("./table-fee.json", JSON.stringify(strAdjustedTableFloor));
+// const fs = require("fs");
+// fs.writeFileSync("./table-fee.json", JSON.stringify(strAdjustedTableFloor));
