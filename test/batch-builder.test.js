@@ -58,7 +58,7 @@ describe("Rollup Db - batchbuilder", async function(){
             tokenID: 1,
             amount: Scalar.e(50),
             nonce: 0,
-            userFee: 200, // effective fee is 4
+            userFee: 126, // effective fee is 4
         };
 
         account1.signTx(tx);
@@ -132,7 +132,7 @@ describe("Rollup Db - batchbuilder", async function(){
             tokenID: 1,
             amount: Scalar.e(50),
             nonce: 0,
-            userFee: 200, // effective fee is 4
+            userFee: 126, // effective fee is 4
         };
 
         account1.signTx(tx);
@@ -181,7 +181,7 @@ describe("Rollup Db - batchbuilder", async function(){
             tokenID: 1,
             amount: Scalar.e(50),
             nonce: 0,
-            userFee: 200, // effective fee is 4
+            userFee: 126, // effective fee is 4
         };
 
         account1.signTx(tx);
@@ -224,7 +224,7 @@ describe("Rollup Db - batchbuilder", async function(){
             tokenID: 1,
             amount: Scalar.e(50),
             nonce: 0,
-            userFee: 200, // effective fee is 4
+            userFee: 126, // effective fee is 4
         };
 
         account1.signTx(tx);
@@ -282,7 +282,7 @@ describe("Rollup Db - batchbuilder", async function(){
             tokenID: 1,
             amount: 50,
             nonce: 0,
-            userFee: 217,
+            userFee: 173,
         };
 
         const feeTx1 = computeFee(tx.amount, tx.userFee);
@@ -295,7 +295,7 @@ describe("Rollup Db - batchbuilder", async function(){
             tokenID: 2,
             amount: 50,
             nonce: 0,
-            userFee: 200,
+            userFee: 126,
         };
 
         const feeTx2 = computeFee(tx2.amount, tx2.userFee);
@@ -366,7 +366,7 @@ describe("Rollup Db - batchbuilder", async function(){
             tokenID: 0,
             amount: 50,
             nonce: 0,
-            userFee: 217,
+            userFee: 173,
         };
 
         account1.signTx(tx);
@@ -403,7 +403,7 @@ describe("Rollup Db - batchbuilder", async function(){
             tokenID: 0,
             amount: 50,
             nonce: 0,
-            userFee: 200,
+            userFee: 126,
         };
 
         account1.signTx(tx);
@@ -472,7 +472,7 @@ describe("Rollup Db - batchbuilder", async function(){
             tokenID: 0,
             amount: 50,
             nonce: 0,
-            userFee: 200,
+            userFee: 126,
         };
 
         account1.signTx(tx);
@@ -492,8 +492,8 @@ describe("Rollup Db - batchbuilder", async function(){
         + "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
         + "0000000000000000000000000000000000000000";
         
-        const resL2Data = "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
-        + "000000000000000000000000000000000000000000000100000001010032c8";
+        const resL2Data = "00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+        + "00000000000000000000000000000000000000000000000000000001000000010100327e";
         
         const resFeeData = "00000104000001050000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
         + "0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
@@ -510,7 +510,7 @@ describe("Rollup Db - batchbuilder", async function(){
         expect(resFeeData).to.be.equal(batchFeeData.toString());
 
         // input hash
-        const resInputHash = "8499231649895331705355334410269171252443486734605338734891754173296354060046";
+        const resInputHash = "15603954494048303420269632640815702839748302996299536781443820012903000088868";
 
         const batchInputHash = await bb.getHashInputs();
         expect(resInputHash).to.be.equal(batchInputHash.toString());
