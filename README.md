@@ -1,9 +1,9 @@
 # Commonjs
 Javascript library implementing common utilities for [hermez network](https://hermez.io/)
 
-![Main CI](https://github.com/hermeznetwork/commonjs/workflows/Main%20CI/badge.svg)
-![npm](https://img.shields.io/npm/v/@hermeznetwork/commonjs)
-![license](https://img.shields.io/github/license/hermeznetwork/commonjs)
+[![Main CI](https://github.com/hermeznetwork/commonjs/workflows/Main%20CI/badge.svg)](https://github.com/hermeznetwork/commonjs/actions?query=workflow%3A%22Main+CI%22)
+[![npm](https://img.shields.io/npm/v/@hermeznetwork/commonjs)](https://www.npmjs.com/package/@hermeznetwork/commonjs)
+[![license](https://img.shields.io/github/license/hermeznetwork/commonjs)](https://github.com/hermeznetwork/commonjs/blob/master/LICENSE)
 
 ## Usage
 ```
