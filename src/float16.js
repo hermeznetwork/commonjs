@@ -104,8 +104,19 @@ function floorFix2Float(_f){
     }
 }
 
+/**
+ * Round large integer by encode-decode in float16 encoding
+ * @param {Scalar} fix
+ * @returns {Scalar} fix rounded 
+ */
+function round(fix){
+    return float2Fix(fix2Float(fix));
+}
+
+
 module.exports = {
     fix2Float,
     float2Fix,
-    floorFix2Float
+    floorFix2Float,
+    round
 };

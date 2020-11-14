@@ -66,7 +66,7 @@ describe("Tx-utils", function () {
         expect(Scalar.eq(testVector[0][1], tx.amount)).to.be.equal(true);
     });
 
-    it("encode decode l1-tx", async () => {
+    it("encode decode l1-full-tx", async () => {
 
         const nLevels = 32;
         const tx = {
@@ -78,8 +78,8 @@ describe("Tx-utils", function () {
             fromBjjCompressed: "0x8efe299dccec53409219f4352d7cba8ae12b8e6d64e9352ebefec438092e8324",
             fromEthAddr: "0x0083df8a850f42e7f7e57013759c285caa701eb6"
         };
-        const txData = `0x${txUtils.encodeL1Tx(tx, nLevels).toString(16)}`;
-        const txDataDecoded = txUtils.decodeL1Tx(txData, nLevels);
+        const txData = `0x${txUtils.encodeL1TxFull(tx, nLevels).toString(16)}`;
+        const txDataDecoded = txUtils.decodeL1TxFull(txData, nLevels);
 
         expect(Scalar.eq(txDataDecoded.toIdx, tx.toIdx)).to.be.equal(true);
         expect(Scalar.eq(txDataDecoded.tokenID, tx.tokenID)).to.be.equal(true);
@@ -125,5 +125,25 @@ describe("Tx-utils", function () {
         expect(Scalar.eq(txDataDecoded.r, l1CoordinatorTx.r)).to.be.equal(true);
         expect(txDataDecoded.s).to.be.equal(l1CoordinatorTx.s);
         expect(txDataDecoded.v).to.be.equal(txDataDecoded.v);
+    });
+
+    it("encode decode l1-tx", async () => {
+        const nLevels = 32;
+
+        const l1Tx = {
+            effectiveAmount: float16.round(Scalar.e("1000000000")),
+            toIdx: 2**24 - 1,
+            fromIdx: 2**30 - 1
+        };
+
+        const txData = `0x${txUtils.encodeL1Tx(l1Tx, nLevels).toString(16)}`;
+        const txDataDecoded = txUtils.decodeL1Tx(txData, nLevels);
+
+        expect(txDataDecoded.userFee.toString()).to.be.equal(Scalar.e(0).toString());
+        expect(txDataDecoded.effectiveAmount.toString()).to.be.equal(l1Tx.effectiveAmount.toString());
+        expect(txDataDecoded.effectiveAmountF.toString()).to.be.
+            equal(float16.fix2Float(l1Tx.effectiveAmount).toString());
+        expect(txDataDecoded.toIdx.toString()).to.be.equal(l1Tx.toIdx.toString());
+        expect(txDataDecoded.fromIdx.toString()).to.be.equal(l1Tx.fromIdx.toString());
     });
 });
