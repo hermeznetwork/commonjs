@@ -37,7 +37,8 @@ describe("Hermez account", () => {
             userFee: 128,
             toBjjSign: true,
             toEthAddr: account2.ethAddr,
-            toBjjAy: account2.ay
+            toBjjAy: account2.ay,
+            maxNumBatch: 7
         };
 
         account.signTx(tx);

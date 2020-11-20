@@ -466,6 +466,7 @@ describe("Rollup Db - batchbuilder", async function(){
         depositTx(bb, account1, 0, 1000);
         depositTx(bb, account2, 0, 2000);
 
+        // L2 tx
         const tx = {
             fromIdx: 256,
             toIdx: 257,
@@ -475,25 +476,41 @@ describe("Rollup Db - batchbuilder", async function(){
             userFee: 126,
         };
 
+        // L1 tx force transfer
+        const tx1 = {
+            fromIdx: 256,
+            loadAmountF: 0,
+            tokenID: 0,
+            fromBjjCompressed: 0,
+            fromEthAddr: account1.ethAddr,
+            toIdx: 257,
+            amount: 100,
+            userFee: 0,
+            onChain: true
+        };
+
         account1.signTx(tx);
         bb.addTx(tx);
+        bb.addTx(tx1);
         bb.addFeeIdx(260);
         bb.addFeeIdx(261);
         
         await bb.build();
 
-        // Check L1, L2, Fee data
+        // Check L1, txsData, Fee data
         const resL1Data = "7e5f4552091a69125d5dfcb7b8c2659029395bdf21b0a1688b37f77b1d1d5539ec3b826db5ac78b2513f574a04c50a7d4f8246d7"
         + "00000000000003e80000000000000000000000002b5ad5c4795c026514f8317c7a215e218dccd6cf093985b1993d9f743f9d7d943ed56f38601cb8b1"
-        + "96db025f79650c4007c3054d00000000000008c800000000000000000000000000000000000000000000000000000000000000000000000000000000"
-        + "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+        + "96db025f79650c4007c3054d00000000000008c80000000000000000000000007e5f4552091a69125d5dfcb7b8c2659029395bdf0000000000000000"
+        + "000000000000000000000000000000000000000000000000000000000100000000640000000000000000010100000000000000000000000000000000"
         + "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
         + "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
         + "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
         + "0000000000000000000000000000000000000000";
         
-        const resL2Data = "00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
-        + "00000000000000000000000000000000000000000000000000000001000000010100327e";
+        const resTxsData = "000000000000000000000000000000000000000000000000010000000101006400000001000000010100327e000000000000000"
+        + "0000000000000000000000000000000000000000000000000000000000000000000000000";
+
+        const resTxsDataSM = "0x000000000000000000000000000000000000000000000000010000000101006400000001000000010100327e";
         
         const resFeeData = "00000104000001050000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
         + "0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
@@ -501,16 +518,18 @@ describe("Rollup Db - batchbuilder", async function(){
         + "0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
         + "000000000000000000000000000000000000000000000000000000000";
 
-        const batchL1Data = await bb.getL1TxsData();
-        const batchL2Data = await bb.getL2TxsData();
+        const batchL1Data = await bb.getL1TxsFullData();
+        const batchTxsData = await bb.getL1L2TxsData();
+        const batchTxsDataSM = await bb.getL1L2TxsDataSM();
         const batchFeeData = await bb.getFeeTxsData();
 
         expect(resL1Data).to.be.equal(batchL1Data.toString());
-        expect(resL2Data).to.be.equal(batchL2Data.toString());
+        expect(resTxsData).to.be.equal(batchTxsData.toString());
+        expect(resTxsDataSM).to.be.equal(batchTxsDataSM.toString());
         expect(resFeeData).to.be.equal(batchFeeData.toString());
 
         // input hash
-        const resInputHash = "15603954494048303420269632640815702839748302996299536781443820012903000088868";
+        const resInputHash = "3848126546564667706487593362615536693612752021773034767490834988872001719450";
 
         const batchInputHash = await bb.getHashInputs();
         expect(resInputHash).to.be.equal(batchInputHash.toString());
@@ -530,8 +549,8 @@ describe("Rollup Db - batchbuilder", async function(){
         const resL2Data = "0".repeat(176);
         const resFeeData = "0".repeat(512);
 
-        const batchL1Data = await bb.getL1TxsData();
-        const batchL2Data = await bb.getL2TxsData();
+        const batchL1Data = await bb.getL1TxsFullData();
+        const batchL2Data = await bb.getL1L2TxsData();
         const batchFeeData = await bb.getFeeTxsData();
 
         expect(resL1Data).to.be.equal(batchL1Data.toString());
@@ -539,9 +558,63 @@ describe("Rollup Db - batchbuilder", async function(){
         expect(resFeeData).to.be.equal(batchFeeData.toString());
 
         // input hash
-        const resInputHash = "15619838842631047522682146668691545717283483538227411762561854652370844145326";
+        const resInputHash = "19011969024068128992305188301756127300982198022714122490207475097638130021654";
 
         const batchInputHash = await bb.getHashInputs();
         expect(resInputHash).to.be.equal(batchInputHash.toString());
+    });
+
+    it("Should check error maxNumBatch", async () => {
+        // Start a new state
+        const db = new SMTMemDB();
+        const rollupDB = await RollupDB(db);
+        const bb = await rollupDB.buildBatch(maxTx, nLevels, maxL1Tx);
+        
+        const account1 = new Account(1);
+        const account2 = new Account(2);
+        
+        depositTx(bb, account1, 0, 1000);
+        depositTx(bb, account2, 0, 2000);
+        
+        await bb.build();
+        await rollupDB.consolidate(bb);
+        
+        let bb2 = await rollupDB.buildBatch(maxTx, nLevels, maxL1Tx);
+        const currentNumBatch = bb2.currentNumBatch;
+
+        // maxNumBatch greater than currentNumBatch
+        const tx = {
+            fromIdx: 256,
+            toIdx: 257,
+            tokenID: 0,
+            amount: 50,
+            nonce: 0,
+            userFee: 120,
+            maxNumBatch: Scalar.add(currentNumBatch, 1),
+        };
+
+        account1.signTx(tx);
+        bb2.addTx(tx);
+        await bb2.build();
+
+        // maxNumBatch equal to currentNumBatch
+        bb2 = await rollupDB.buildBatch(maxTx, nLevels, maxL1Tx);
+        tx.maxNumBatch = currentNumBatch;
+        account1.signTx(tx);
+        bb2.addTx(tx);
+        await bb2.build();
+
+        // maxNumBatch less than currentNumBatch
+        bb2 = await rollupDB.buildBatch(maxTx, nLevels, maxL1Tx);
+        tx.maxNumBatch = Scalar.sub(currentNumBatch, 1);
+        account1.signTx(tx);
+        bb2.addTx(tx);
+
+        try {
+            await bb2.build();
+            expect(true).to.be.equal(false);
+        } catch (error) {
+            expect(error.message.includes("maxNumBatch must be less than currentBatch")).to.be.equal(true);
+        }
     });
 });

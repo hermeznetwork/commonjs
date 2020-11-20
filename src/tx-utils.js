@@ -10,14 +10,14 @@ const utils = require("./utils");
  * @param {Object} tx - Transaction object
  * @returns {String} L1 tx data encoded as hexadecimal
  */
-function encodeL1Tx(tx) {
+function encodeL1TxFull(tx) {
     const fromBjjCompressedB = 256;
     const fromEthAddrB = 160;
     const f16B = 16;
     const tokenIDB = 32;
     const idxB = 48; // MAX_NLEVELS
 
-    const L1TxB = fromEthAddrB + fromBjjCompressedB + 2*idxB + tokenIDB + 2*f16B;
+    const L1TxFullB = fromEthAddrB + fromBjjCompressedB + 2*idxB + tokenIDB + 2*f16B;
 
     let res = Scalar.e(0);
     res = Scalar.add(res, tx.toIdx || 0);
@@ -28,7 +28,7 @@ function encodeL1Tx(tx) {
     res = Scalar.add(res, Scalar.shl(Scalar.fromString(tx.fromBjjCompressed || "0", 16), 2*idxB + tokenIDB + 2*f16B));
     res = Scalar.add(res, Scalar.shl(Scalar.fromString(tx.fromEthAddr || "0", 16), fromBjjCompressedB + 2*idxB + tokenIDB + 2*f16B));
 
-    return utils.padZeros(res.toString("16"), L1TxB / 4);
+    return utils.padZeros(res.toString("16"), L1TxFullB / 4);
 }
 
 /**
@@ -36,7 +36,7 @@ function encodeL1Tx(tx) {
  * @param {String} l1TxEncoded - L1 tx data encoded as hexadecimal string
  * @returns {Object} Object representing a L1 tx 
  */
-function decodeL1Tx(l1TxEncoded) {
+function decodeL1TxFull(l1TxEncoded) {
     const l1TxScalar = Scalar.fromString(l1TxEncoded, 16);
     const fromEthAddrB = 160;
     const fromBjjCompressedB = 256;
@@ -218,16 +218,31 @@ function verifyTxSig(tx) {
 }
 
 /**
+ * Build element_1 for L2HashSignature
+ * @param {Object} tx - transaction object
+ * @returns {Scalar} element_1 L2 signature
+ */
+function buildElement1(tx){
+    let res = Scalar.e(0);
+
+    res = Scalar.add(res, Scalar.fromString(tx.toEthAddr || "0", 16)); // ethAddr --> 160 bits
+    res = Scalar.add(res, Scalar.shl(tx.maxNumBatch || 0, 160)); // maxNumBatch --> 32 bits
+
+    return res;  
+}
+
+/**
  * Builds the message to hash
  * @param {Object} tx - Transaction object
  * @returns {Scalar} message to sign 
  */
 function buildHashSig(tx){
     const txCompressedData = buildTxCompressedData(tx);
-        
+    const element1 = buildElement1(tx);    
+
     const h = poseidonHash([
         txCompressedData,
-        Scalar.fromString(tx.toEthAddr || "0", 16),
+        element1,
         Scalar.fromString(tx.toBjjAy || "0", 16),
         Scalar.e(tx.rqTxCompressedDataV2 || 0),
         Scalar.fromString(tx.rqToEthAddr || "0", 16),
@@ -235,6 +250,51 @@ function buildHashSig(tx){
     ]);
 
     return h;
+}
+
+/**
+ * Encode L1 tx data availability
+ * @param {Object} tx - Transaction object
+ * @param {Number} nLevels - merkle tree depth
+ * @returns {String} L1 tx data encoded as hexadecimal
+ */
+function encodeL1Tx(tx, nLevels){
+    const idxB = nLevels;
+    const f16B = 16;
+    const userFeeB = 8; 
+
+    const L1TxB = 2*idxB + f16B + userFeeB;
+
+    let res = Scalar.e(0);
+    res = Scalar.add(res, Scalar.e(0)); // fee for L1 transaction is 0
+    res = Scalar.add(res, Scalar.shl(float16.fix2Float(tx.effectiveAmount), userFeeB));
+    res = Scalar.add(res, Scalar.shl(tx.toIdx, f16B + userFeeB));
+    res = Scalar.add(res, Scalar.shl(tx.fromIdx, idxB + f16B + userFeeB));
+
+    return utils.padZeros(res.toString("16"), L1TxB / 4);
+}
+
+/**
+ * Decode L1 tx data availability
+ * @param {String} l1TxEncoded - L1 tx data availability encoded as hexadecimal string
+ * @param {Number} nLevels - merkle tree depth
+ * @returns {Object} Object representing a L1 tx 
+ */
+function decodeL1Tx(l1TxEncoded, nLevels){
+    const l1TxScalar = Scalar.fromString(l1TxEncoded, 16);
+    const idxB = nLevels;
+    const f16B = 16;
+    const userFeeB = 8;
+
+    let l1Tx = {};
+
+    l1Tx.userFee = Scalar.toNumber(utils.extract(l1TxScalar, 0, userFeeB));
+    l1Tx.effectiveAmountF = Scalar.toNumber(utils.extract(l1TxScalar, userFeeB, f16B));
+    l1Tx.effectiveAmount = float16.float2Fix(l1Tx.effectiveAmountF);
+    l1Tx.toIdx = Scalar.toNumber(utils.extract(l1TxScalar, userFeeB + f16B, idxB));
+    l1Tx.fromIdx = Scalar.toNumber(utils.extract(l1TxScalar, userFeeB + f16B + idxB, idxB));
+
+    return l1Tx;
 }
 
 /**
@@ -289,11 +349,13 @@ module.exports = {
     decodeTxCompressedDataV2,
     verifyTxSig,
     txRoundValues,
-    encodeL1Tx,
-    decodeL1Tx,
+    encodeL1TxFull,
+    decodeL1TxFull,
     buildHashSig,
     encodeL1CoordinatorTx,
     decodeL1CoordinatorTx,
     encodeL2Tx,
-    decodeL2Tx
+    decodeL2Tx,
+    encodeL1Tx,
+    decodeL1Tx
 };

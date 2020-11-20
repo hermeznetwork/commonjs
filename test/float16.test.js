@@ -42,4 +42,17 @@ describe("Float16", function () {
             expect(testFloat).to.be.equal(testVector[i][0]);
         }
     });
+
+    it("Round", async () => {
+        const testVector = [
+            ["100000000000000000001", "100000000000000000000"],
+            ["100000000000000000000", "100000000000000000000"],
+            ["99999999999999999999", "100000000000000000000"],
+        ];
+
+        for (let i = 0; i < testVector.length; i++) {
+            const testFloat = float16.round(testVector[i][0]);
+            expect(testFloat.toString()).to.be.equal(testVector[i][1]);
+        }
+    });
 });
