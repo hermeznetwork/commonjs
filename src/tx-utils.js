@@ -4,6 +4,7 @@ const eddsa = require("circomlib").eddsa;
 
 const float16 = require("./float16");
 const utils = require("./utils");
+const Constants = require("./constants");
 
 /**
  * Encode L1 tx data
@@ -310,10 +311,17 @@ function encodeL2Tx(tx, nLevels){
 
     const L2TxB = 2*idxB + f16B + userFeeB;
 
+    let finalToIdx = tx.toIdx;
+    if (tx.toIdx == Constants.nullIdx){
+        if (tx.auxToIdx == undefined)
+            throw Error("encodeL2Tx: auxToIdx is not defined");
+        finalToIdx = tx.auxToIdx;
+    }
+
     let res = Scalar.e(0);
     res = Scalar.add(res, tx.userFee);
     res = Scalar.add(res, Scalar.shl(float16.fix2Float(tx.amount), userFeeB));
-    res = Scalar.add(res, Scalar.shl(tx.toIdx, f16B + userFeeB));
+    res = Scalar.add(res, Scalar.shl(finalToIdx, f16B + userFeeB));
     res = Scalar.add(res, Scalar.shl(tx.fromIdx, idxB + f16B + userFeeB));
 
     return utils.padZeros(res.toString("16"), L2TxB / 4);

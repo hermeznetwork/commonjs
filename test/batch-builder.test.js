@@ -7,6 +7,8 @@ const Account = require("../index").HermezAccount;
 const RollupDB = require("../index").RollupDB;
 const Constants = require("../index").Constants;
 const computeFee = require("../index").feeTable.computeFee;
+const txUtils = require("../index").txUtils;
+const float16 = require("../index").float16;
 const { depositTx } = require("./helpers/test-utils");
 
 describe("Rollup Db - batchbuilder", async function(){
@@ -30,8 +32,6 @@ describe("Rollup Db - batchbuilder", async function(){
         depositTx(bb, account2, 2, 3000);
     
         await bb.build();
-        bb.getInput();
-
         await rollupDB.consolidate(bb);
 
         const s1 = await rollupDB.getStateByIdx(256);
@@ -65,8 +65,6 @@ describe("Rollup Db - batchbuilder", async function(){
         bb2.addTx(tx);
     
         await bb2.build();
-        bb2.getInput();
-
         await rollupDB.consolidate(bb2);
     
         const s2_1 = await rollupDB.getStateByIdx(256);
@@ -103,6 +101,15 @@ describe("Rollup Db - batchbuilder", async function(){
     
         const s5 = await rollupDB.getStateByEthAddr(account2.ethAddr);
         expect(lodash.isEqual(s5[0], s2_2)).to.be.equal(true);
+
+        // check L2 tx data availability
+        const L2TxData = await bb2._L2TxsData();
+        const L2TxDataDecoded = txUtils.decodeL2Tx(L2TxData, nLevels);
+
+        expect(L2TxDataDecoded.userFee).to.be.equal(tx.userFee);
+        expect(Scalar.e(L2TxDataDecoded.amountF).toString()).to.be.equal(float16.fix2Float(tx.amount).toString());
+        expect(L2TxDataDecoded.fromIdx).to.be.equal(tx.fromIdx);
+        expect(L2TxDataDecoded.toIdx).to.be.equal(tx.toIdx);
     });
 
     it("Should process L2 transfer to ethereum address", async () => {
@@ -119,11 +126,11 @@ describe("Rollup Db - batchbuilder", async function(){
         depositTx(bb, account2, 1, 3000);
     
         await bb.build();
-        bb.getInput();
-
         await rollupDB.consolidate(bb);
     
         const bb2 = await rollupDB.buildBatch(maxTx, nLevels, maxL1Tx);
+
+        const expectedToIdx = 258;
 
         const tx = {
             fromIdx: 256,
@@ -139,7 +146,6 @@ describe("Rollup Db - batchbuilder", async function(){
         bb2.addTx(tx);
     
         await bb2.build();
-        bb2.getInput();
         await rollupDB.consolidate(bb2);
 
         const s1 = await rollupDB.getStateByIdx(256);
@@ -150,6 +156,15 @@ describe("Rollup Db - batchbuilder", async function(){
 
         const s3 = await rollupDB.getStateByIdx(258);
         expect(s3.balance.toString()).to.be.equal(Scalar.e(3050).toString());
+
+        // check L2 tx data availability
+        const L2TxData = await bb2._L2TxsData();
+        const L2TxDataDecoded = txUtils.decodeL2Tx(L2TxData, nLevels);
+
+        expect(L2TxDataDecoded.userFee).to.be.equal(tx.userFee);
+        expect(Scalar.e(L2TxDataDecoded.amountF).toString()).to.be.equal(float16.fix2Float(tx.amount).toString());
+        expect(L2TxDataDecoded.fromIdx).to.be.equal(tx.fromIdx);
+        expect(L2TxDataDecoded.toIdx).to.be.equal(expectedToIdx);
     });
 
     it("Should process L2 transfer to Bjj address", async () => {
@@ -166,11 +181,11 @@ describe("Rollup Db - batchbuilder", async function(){
         depositTx(bb, account2, 1, 3000);
     
         await bb.build();
-        bb.getInput();
-
         await rollupDB.consolidate(bb);
     
         const bb2 = await rollupDB.buildBatch(maxTx, nLevels, maxL1Tx);
+
+        const expectedToIdx = 258;
 
         const tx = {
             fromIdx: 256,
@@ -188,7 +203,6 @@ describe("Rollup Db - batchbuilder", async function(){
         bb2.addTx(tx);
     
         await bb2.build();
-        bb2.getInput();
         await rollupDB.consolidate(bb2);
 
         const s1 = await rollupDB.getStateByIdx(256);
@@ -199,6 +213,15 @@ describe("Rollup Db - batchbuilder", async function(){
 
         const s3 = await rollupDB.getStateByIdx(258);
         expect(s3.balance.toString()).to.be.equal(Scalar.e(3050).toString());
+
+        // check L2 tx data availability
+        const L2TxData = await bb2._L2TxsData();
+        const L2TxDataDecoded = txUtils.decodeL2Tx(L2TxData, nLevels);
+
+        expect(L2TxDataDecoded.userFee).to.be.equal(tx.userFee);
+        expect(Scalar.e(L2TxDataDecoded.amountF).toString()).to.be.equal(float16.fix2Float(tx.amount).toString());
+        expect(L2TxDataDecoded.fromIdx).to.be.equal(tx.fromIdx);
+        expect(L2TxDataDecoded.toIdx).to.be.equal(expectedToIdx);
     });
 
     it("Should process L2 exit", async () => {
@@ -212,8 +235,6 @@ describe("Rollup Db - batchbuilder", async function(){
         depositTx(bb, account1, 1, 1000);
     
         await bb.build();
-        bb.getInput();
-
         await rollupDB.consolidate(bb);
     
         const bb2 = await rollupDB.buildBatch(maxTx, nLevels, maxL1Tx);
@@ -231,8 +252,6 @@ describe("Rollup Db - batchbuilder", async function(){
         bb2.addTx(tx);
     
         await bb2.build();
-        bb2.getInput();
-
         await rollupDB.consolidate(bb2);
     
         const s1 = await rollupDB.getStateByIdx(256);
@@ -250,6 +269,15 @@ describe("Rollup Db - batchbuilder", async function(){
         expect(s1_exit.state.balance.toString()).to.be.equal(Scalar.e(50).toString());
         expect(s1_exit.state.tokenID).to.be.equal(1);
         expect(s1_exit.state.nonce).to.be.equal(0);
+
+        // check L2 tx data availability
+        const L2TxData = await bb2._L2TxsData();
+        const L2TxDataDecoded = txUtils.decodeL2Tx(L2TxData, nLevels);
+
+        expect(L2TxDataDecoded.userFee).to.be.equal(tx.userFee);
+        expect(Scalar.e(L2TxDataDecoded.amountF).toString()).to.be.equal(float16.fix2Float(tx.amount).toString());
+        expect(L2TxDataDecoded.fromIdx).to.be.equal(tx.fromIdx);
+        expect(L2TxDataDecoded.toIdx).to.be.equal(tx.toIdx);
     });
 
     it("Should check fee accumulated, fee plan tokens, fee idxs & pay fees on L2", async () => {
