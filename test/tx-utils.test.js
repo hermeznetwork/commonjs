@@ -3,6 +3,7 @@ const Scalar = require("ffjavascript").Scalar;
 
 const txUtils = require("../index").txUtils;
 const float16 = require("../index").float16;
+const Constants = require("../index").Constants;
 
 describe("Tx-utils", function () {
 
@@ -106,6 +107,31 @@ describe("Tx-utils", function () {
         expect(Scalar.eq(txDataDecoded.amount, tx.amount)).to.be.equal(true);
         expect(Scalar.eq(txDataDecoded.toIdx, tx.toIdx)).to.be.equal(true);
         expect(Scalar.eq(txDataDecoded.fromIdx, tx.fromIdx)).to.be.equal(true);
+
+        // check missing auxToIdx error
+        const tx2 = {
+            toIdx: Constants.nullIdx,
+            fromIdx: 256,
+            amount: float16.float2Fix(float16.fix2Float(Scalar.fromString("10235000000000000000000000000000000"))),
+            userFee: 0,
+        };
+
+        try {
+            txUtils.encodeL2Tx(tx2, nLevels);
+            expect(true).to.be.equal(false);
+        } catch(error){
+            expect(error.message.includes("encodeL2Tx: auxToIdx is not defined")).to.be.equal(true);
+        }
+
+        // add auxToIdx
+        tx2.auxToIdx = 312;
+        const txData2 = `0x${txUtils.encodeL2Tx(tx2, nLevels).toString(16)}`;
+        const txDataDecoded2 = txUtils.decodeL2Tx(txData2, nLevels);
+
+        expect(Scalar.eq(txDataDecoded2.userFee, tx2.userFee)).to.be.equal(true);
+        expect(Scalar.eq(txDataDecoded2.amount, tx2.amount)).to.be.equal(true);
+        expect(Scalar.eq(txDataDecoded2.toIdx, tx2.auxToIdx)).to.be.equal(true);
+        expect(Scalar.eq(txDataDecoded2.fromIdx, tx2.fromIdx)).to.be.equal(true);
     });
 
     it("encode decode l1-tx coordinator", async () => {
