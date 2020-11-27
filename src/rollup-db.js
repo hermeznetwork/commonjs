@@ -188,13 +188,8 @@ class RollupDB {
      * @returns {Object} Exit tree information
      */
     async getExitTreeInfo(idx, numBatch){
-        if (numBatch > this.lastBatch)
-            return null;
-        
-        const keyRoot = Scalar.add(Constants.DB_Batch, Scalar.e(numBatch));
-        const rootValues = await this.db.get(keyRoot);
-        if (!rootValues) return null;
-        const rootExitTree = rootValues[1];
+        const rootExitTree = await this.getExitRoot(numBatch);
+        if (!rootExitTree) return null;
         const dbExit = new SMTTmpDb(this.db);
         const tmpExitTree = new SMT(dbExit, rootExitTree);
         const resFindExit = await tmpExitTree.find(Scalar.e(idx));
@@ -239,6 +234,38 @@ class RollupDB {
      */
     getRoot(){
         return this.stateRoot;
+    }
+
+    /**
+     * Return the exit root saved in rollupDb depending on batch number
+     * @param {Scalar} numBatch - Batch number
+     * @returns {Scalar} exit root
+     */
+    async getExitRoot(numBatch){
+        if (numBatch > this.lastBatch)
+            return null;
+
+        const keyRoot = Scalar.add(Constants.DB_Batch, Scalar.e(numBatch));
+        const rootValues = await this.db.get(keyRoot);
+        if (!rootValues) return null;
+        const rootExitTree = rootValues[1];
+        return rootExitTree;
+    }
+
+    /**
+     * Return the state root saved in rollupDb depending on batch number
+     * @param {Scalar} numBatch - Batch number
+     * @returns {Scalar} state root
+     */
+    async getStateRoot(numBatch){
+        if (numBatch > this.lastBatch)
+            return null;
+
+        const keyRoot = Scalar.add(Constants.DB_Batch, Scalar.e(numBatch));
+        const rootValues = await this.db.get(keyRoot);
+        if (!rootValues) return null;
+        const rootExitTree = rootValues[0];
+        return rootExitTree;
     }
 
     /**

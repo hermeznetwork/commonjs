@@ -110,6 +110,16 @@ describe("Rollup Db - batchbuilder", async function(){
         expect(Scalar.e(L2TxDataDecoded.amountF).toString()).to.be.equal(float16.fix2Float(tx.amount).toString());
         expect(L2TxDataDecoded.fromIdx).to.be.equal(tx.fromIdx);
         expect(L2TxDataDecoded.toIdx).to.be.equal(tx.toIdx);
+
+        // check state roots
+        const stateRoot1 = await rollupDB.getStateRoot(bb.batchNumber);
+        expect(stateRoot1.toString()).to.be.equal(bb.stateTree.root.toString());
+
+        const stateRoot2 = await rollupDB.getStateRoot(bb2.batchNumber);
+        expect(stateRoot2.toString()).to.be.equal(bb2.stateTree.root.toString());
+
+        const stateRootNonExisting = await rollupDB.getStateRoot(bb2.batchNumber + 1);
+        expect(stateRootNonExisting).to.be.equal(null);
     });
 
     it("Should process L2 transfer to ethereum address", async () => {
@@ -278,6 +288,15 @@ describe("Rollup Db - batchbuilder", async function(){
         expect(Scalar.e(L2TxDataDecoded.amountF).toString()).to.be.equal(float16.fix2Float(tx.amount).toString());
         expect(L2TxDataDecoded.fromIdx).to.be.equal(tx.fromIdx);
         expect(L2TxDataDecoded.toIdx).to.be.equal(tx.toIdx);
+
+        // check exit root
+        const exitRoot = await rollupDB.getExitRoot(bb2.batchNumber);
+        const oldExitRoot = await rollupDB.getExitRoot(bb2.batchNumber - 1); // empty exit root
+        const exitRootNonExisting = await rollupDB.getExitRoot(bb2.batchNumber + 1); // non-existing
+
+        expect(exitRoot.toString()).to.be.equal(bb2.exitTree.root.toString());
+        expect(oldExitRoot.toString()).to.be.equal(Scalar.e(0).toString());
+        expect(exitRootNonExisting).to.be.equal(null);
     });
 
     it("Should check fee accumulated, fee plan tokens, fee idxs & pay fees on L2", async () => {
