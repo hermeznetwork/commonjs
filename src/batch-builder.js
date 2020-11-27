@@ -1229,15 +1229,15 @@ module.exports = class BatchBuilder {
         // string hexacecimal oldStateRoot
         let strOldStateRoot = utils.padZeros(oldStateRoot.toString("16"), this.rootB / 4);
 
-        // string newLastIdx and oldLastIdx
-        let res = Scalar.e(0);
-        res = Scalar.add(res, newLastIdx);
-        res = Scalar.add(res, Scalar.shl(oldLastIdx, this.maxIdxB));
-        const finalIdxStr = utils.padZeros(res.toString("16"), (2*this.maxIdxB) / 4);
+        // string newLastIdx
+        let strOldLastIdx = utils.padZeros(oldLastIdx.toString("16"), this.maxIdxB / 4);
+        
+        // string oldLastIdx
+        let strNewLastIdx = utils.padZeros(newLastIdx.toString("16"), this.maxIdxB / 4);
 
         // build input string
-        const finalStr = finalIdxStr.concat(strOldStateRoot).concat(strNewStateRoot).concat(strNewExitRoot)
-            .concat(L1FullTxsData).concat(txsData).concat(feeTxsData).concat(strChainID).concat(strCurrentNumBatch);
+        const finalStr = strCurrentNumBatch.concat(strChainID).concat(strOldStateRoot).concat(strOldLastIdx).concat(feeTxsData)
+            .concat(L1FullTxsData).concat(txsData).concat(strNewStateRoot).concat(strNewExitRoot).concat(strNewLastIdx);
 
         return finalStr;
     }
