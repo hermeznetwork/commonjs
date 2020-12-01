@@ -7,7 +7,7 @@ const level = require("level");
  */
 class LeveldB {
     /**
-     * @param {Bool} prefix - Database prefix
+     * @param {String} prefix - Database prefix
      * @param {String} pathDb - Database location
      */
     constructor(pathDb, prefix = "") {
@@ -27,7 +27,7 @@ class LeveldB {
     /**
      * Method to retrieve a value given a key
      * @param {String} key
-     * @returns {String}
+     * @returns {String} value
      */
     async get(key) {
         return await this.db.get(this.prefix + key);
@@ -38,7 +38,7 @@ class LeveldB {
      * otherwise return default value
      * @param {String} key
      * @param {Any} defaultElem
-     * @returns {String | Any}
+     * @returns {String | Any} value or default value
      */
     async getOrDefault(key, defaultElem) {
         try {
@@ -79,6 +79,7 @@ class LeveldB {
 
     /**
      * Get all keys of the database
+     * @param {String} prefix
      * @returns {Array} Contains all the keys found
      */
     async listKeys(prefix = "") {
