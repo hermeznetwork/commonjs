@@ -5,6 +5,7 @@ module.exports.stateUtils = require("./src/state-utils");
 module.exports.utils = require("./src/utils");
 module.exports.feeTable = require("./src/fee-table");
 module.exports.SMTTmpDb = require("./src/smt-tmp-db");
+module.exports.SMTLevelDb = require("./src/smt-leveldb");
 module.exports.Constants = require("./src/constants");
 module.exports.RollupDB = require("./src/rollup-db");
 module.exports.BatchBuilder = require("./src/batch-builder");
