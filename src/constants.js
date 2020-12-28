@@ -32,3 +32,4 @@ module.exports.maxNlevels = 48;
 module.exports.exitAx = "0x0000000000000000000000000000000000000000000000000000000000000000";
 module.exports.exitAy = "0x0000000000000000000000000000000000000000000000000000000000000000";
 module.exports.nullEthAddr = "0xffffffffffffffffffffffffffffffffffffffff";
+module.exports.createAccountMsg = "I authorize this babyjubjub key for hermez rollup account creation";
