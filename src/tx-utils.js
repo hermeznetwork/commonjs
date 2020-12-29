@@ -1,6 +1,7 @@
 const Scalar = require("ffjavascript").Scalar;
 const poseidonHash = require("circomlib").poseidon;
 const eddsa = require("circomlib").eddsa;
+const ethers = require("ethers");
 
 const float16 = require("./float16");
 const utils = require("./utils");
@@ -350,6 +351,59 @@ function decodeL2Tx(l2TxEncoded, nLevels){
     return l2tx;
 }
 
+/**
+ * Build and sign message to be sent to the coordinator
+ * This message will be used by the coordinator to create accounts
+ * @param {Object} wallet - Signer ethers
+ * @param {String} bjj - Babyjubjub compressed encoded as hexadecimal string
+ * @param {String} chainID - Chain ID encoded as hexadecimal string
+ * @param {String} ethAddr - Ethereum address encoded as hexadecimal string
+ */
+async function signBjjAuth(wallet, bjj, chainID, ethAddr) {
+    let parseBjj;
+    if (bjj.substr(0, 2) === "0x"){
+        parseBjj = bjj;
+    } else {
+        parseBjj = `0x${bjj}`;
+    }
+
+    let parseEthAddr;
+    if (ethAddr.substr(0, 2) === "0x"){
+        parseEthAddr = ethAddr;
+    } else {
+        parseEthAddr = `0x${ethAddr}`;
+    }
+
+    let parseChainID;
+    if (chainID.substr(0, 2) === "0x"){
+        parseChainID = chainID;
+    } else {
+        parseChainID = `0x${chainID}`;
+    }
+
+    // message header = 66 bytes
+    const AccountCreationAuthMsgArray = ethers.utils.toUtf8Bytes(Constants.createAccountMsg);
+
+    // message header +    bjj   + chainID + ethAddr  = 120 bytes
+    //    66 bytes    + 32 bytes + 2 bytes + 20 bytes = 120 bytes
+    const bytesBjj = 32;
+    const bytesChainID = 2;
+    const bytesEthAddr = 20;
+
+    const messageHex = ethers.utils.hexlify(AccountCreationAuthMsgArray)
+                       + ethers.utils.hexZeroPad(parseBjj, bytesBjj).slice(2)
+                       + ethers.utils.hexZeroPad(parseChainID, bytesChainID).slice(2)
+                       + ethers.utils.hexZeroPad(parseEthAddr, bytesEthAddr).slice(2);
+
+    const messageArray = ethers.utils.arrayify(messageHex);
+
+    // automatically concat "\x19Ethereum Signed Message:\n120" to the messageArray
+    // where `120`is the length of the messageArray
+    const flatSig = await wallet.signMessage(messageArray);
+    const signatureParams = ethers.utils.splitSignature(flatSig);
+    return flatSig.slice(0, -2) + signatureParams.v.toString(16);
+}
+
 module.exports = {
     buildTxCompressedData,
     decodeTxCompressedData,
@@ -365,5 +419,6 @@ module.exports = {
     encodeL2Tx,
     decodeL2Tx,
     encodeL1Tx,
-    decodeL1Tx
+    decodeL1Tx,
+    signBjjAuth
 };

@@ -1,5 +1,6 @@
 const { expect } = require("chai");
 const Scalar = require("ffjavascript").Scalar;
+const ethers = require("ethers");
 
 const txUtils = require("../index").txUtils;
 const float16 = require("../index").float16;
@@ -171,5 +172,51 @@ describe("Tx-utils", function () {
             equal(float16.fix2Float(l1Tx.effectiveAmount).toString());
         expect(txDataDecoded.toIdx.toString()).to.be.equal(l1Tx.toIdx.toString());
         expect(txDataDecoded.fromIdx.toString()).to.be.equal(l1Tx.fromIdx.toString());
+    });
+
+    it("account creation authorization", async () => {
+        const testVectors = [];
+
+        testVectors.push({
+            inputs: {
+                ethPrivKey: "0000000000000000000000000000000000000000000000000000000000000001",
+                bjjCompressed: "0x21b0a1688b37f77b1d1d5539ec3b826db5ac78b2513f574a04c50a7d4f8246d7",
+                chainID: "0x004",
+                ethAddress: "0x7e5f4552091a69125d5dfcb7b8c2659029395bdf"
+            },
+            expectedSignature: "0x73d10d6ecf06ee8a5f60ac90f06b78bef9c650f414ba3ac73e176dc32e896159147457e9c86f0b4bd60fdaf2c0b2aec890a7df993d69a4805e242a6b845ebf231c"
+        });
+
+        testVectors.push({
+            inputs: {
+                ethPrivKey: "0000000000000000000000000000000000000000000000000000000000000002",
+                bjjCompressed: "93985b1993d9f743f9d7d943ed56f38601cb8b196db025f79650c4007c3054d",
+                chainID: "0x00",
+                ethAddress: "2b5ad5c4795c026514f8317c7a215e218dccd6cf"
+            },
+            expectedSignature: "0xbb4156156c705494ad5f99030342c64657e51e2994750f92125717c40bf56ad632044aa6bd00979feea92c417b552401e65fe5f531f15010d9d1c278da8be1df1b"
+        });
+
+        // this inputs has been taken from contracts repository to assure compatibility:
+        // https://github.com/hermeznetwork/contracts/blob/master/test/hermez/HermezHelpers.test.js#L93
+        testVectors.push({
+            inputs: {
+                ethPrivKey: "0xc5e8f61d1ab959b397eecc0a37a6517b8e67a0e7cf1f4bce5591f3ed80199122",
+                bjjCompressed: "22870c1bcc451396202d62f566026eab8e438c6c91decf8ddf63a6c162619b52",
+                chainID: "7a69",
+                ethAddress: "0xf4e77E5Da47AC3125140c470c71cBca77B5c638c"
+            },
+            expectedSignature: "0x43b5818802a137a72a190c1d8d767ca507f7a4804b1b69b5e055abf31f4f2b476c80bb1ba63260d95610f6f831420d32130e7f22fec5d76e16644ddfcedd0d441c"
+        });
+
+        for (let i = 0; i < testVectors.length; i++){
+            const { ethPrivKey, bjjCompressed, chainID, ethAddress } = testVectors[i].inputs;
+            const { expectedSignature } = testVectors[i];
+
+            const wallet = new ethers.Wallet(ethPrivKey);
+            const computedSignature = await txUtils.signBjjAuth(wallet, bjjCompressed, chainID, ethAddress);
+
+            expect(expectedSignature).to.be.equal(computedSignature);
+        }
     });
 });
