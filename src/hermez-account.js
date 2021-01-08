@@ -23,6 +23,21 @@ module.exports = class HermezAccount {
             this.privateKey = crypto.randomBytes(32).toString("hex");
         }
 
+        const pvtKeysBjjs = []; 
+        pvtKeysBjjs.push("0"); // not used
+        pvtKeysBjjs.push("0100000000000000000000000000000000000000000000000000000000000000");
+        pvtKeysBjjs.push("0200000000000000000000000000000000000000000000000000000000000000");
+        pvtKeysBjjs.push("0300000000000000000000000000000000000000000000000000000000000000");
+        pvtKeysBjjs.push("0400000000000000000000000000000000000000000000000000000000000000");
+        pvtKeysBjjs.push("0500000000000000000000000000000000000000000000000000000000000000");
+        pvtKeysBjjs.push("0600000000000000000000000000000000000000000000000000000000000000");
+        pvtKeysBjjs.push("0700000000000000000000000000000000000000000000000000000000000000");
+        pvtKeysBjjs.push("0800000000000000000000000000000000000000000000000000000000000000");
+        pvtKeysBjjs.push("0900000000000000000000000000000000000000000000000000000000000000");
+        pvtKeysBjjs.push("0A00000000000000000000000000000000000000000000000000000000000000");
+        pvtKeysBjjs.push("0B00000000000000000000000000000000000000000000000000000000000000");
+        pvtKeysBjjs.push("0C00000000000000000000000000000000000000000000000000000000000000");
+
         // Get secp256k1 generator point
         const generatorPoint = ec.g;
 
@@ -48,15 +63,24 @@ module.exports = class HermezAccount {
         this.ethAddr = `0x${ethAddress}`;
 
         // Derive a private key wit a hash
-        this.rollupPrvKey = Buffer.from(keccak256("HERMEZ_MOCK_ACCOUNT" + this.privateKey), "hex");
+        // this.rollupPrvKey = Buffer.from(keccak256("HERMEZ_MOCK_ACCOUNT" + this.privateKey), "hex");
+        this.rollupPrvKey = Buffer.from(pvtKeysBjjs[Number(privateKey)], "hex");
+        // console.log("privateKeysBjj: ", this.rollupPrvKey.toString("hex"));
+        // console.log("buff", buff);
 
         const bjPubKey = eddsa.prv2pub(this.rollupPrvKey);
+
+        // console.log("Ax: ",  bjPubKey[0]);
+        // console.log("Ay: " , bjPubKey[1]);
 
         this.ax = bjPubKey[0].toString(16);
         this.ay = bjPubKey[1].toString(16);
 
         const compressedBuff = babyJub.packPoint(bjPubKey);
-        
+        // console.log("Bjj pub JS: ", compressedBuff);
+
+        this.compressedGO = compressedBuff;
+
         this.sign = 0;
         if (compressedBuff[31] & 0x80) {
             this.sign = 1;
@@ -80,5 +104,19 @@ module.exports = class HermezAccount {
         tx.s = signature.S;
         tx.fromAx = this.ax;
         tx.fromAy = this.ay;
+    }
+
+    /**
+     * Swap endianess buffer
+     * @param {Buffer} buff - Buffer to swap
+     * @returns {Buffer} - Buffer swapped
+     */
+    swapEndianness(buff){
+        const len = buff.length;
+        const buffSwap = Buffer.alloc(len);
+        for (let i = 0; i < len; i++) {
+            buffSwap[i] = buff[(len - 1) - i];
+        }
+        return buffSwap;
     }
 };
