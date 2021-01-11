@@ -388,6 +388,8 @@ module.exports = class BatchBuilder {
         newState1.balance = Scalar.sub(Scalar.sub(Scalar.add(oldState1.balance, effectiveLoadAmount), effectiveAmount), fee2Charge);
         if (!tx.onChain) {
             if (oldState1.nonce != tx.nonce) {
+                console.log(oldState1);
+                console.log(tx.fromIdx);
                 throw new Error("invalid nonce");
             }
             newState1.nonce++;
@@ -1268,6 +1270,9 @@ module.exports = class BatchBuilder {
         const finalStr = finalIdxStr.concat(strOldStateRoot).concat(strNewStateRoot).concat(strNewExitRoot)
             .concat(L1FullTxsData).concat(txsData).concat(feeTxsData).concat(strChainID).concat(strCurrentNumBatch);
 
+        console.log("txsData: ", txsData);
+        console.log("feeTxsData: ", feeTxsData);
+
         return finalStr;
     }
 
@@ -1393,7 +1398,9 @@ module.exports = class BatchBuilder {
         const dataL1Tx = this._L1TxsData();
         const dataL2Tx = this._L2TxsData();
         const dataNopTx = this._nopTxsData();
-
+        console.log("dataL1Tx: ", dataL1Tx);
+        console.log("dataL2Tx: ", dataL2Tx);
+        console.log("dataNopTx: ", dataNopTx);
         return dataL1Tx.concat(dataL2Tx).concat(dataNopTx);
     }
 
