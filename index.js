@@ -1,4 +1,4 @@
-module.exports.float16 = require("./src/float16");
+module.exports.float40 = require("./src/float40");
 module.exports.HermezAccount = require("./src/hermez-account");
 module.exports.txUtils = require("./src/tx-utils");
 module.exports.stateUtils = require("./src/state-utils");
