@@ -350,7 +350,7 @@ module.exports = class BatchBuilder {
         this.input.toIdx[i] = tx.toIdx;
         this.input.auxToIdx[i] = tx.auxToIdx || 0;
         this.input.txCompressedData[i] = txUtils.buildTxCompressedData(Object.assign({newAccount: newAccount}, tx));
-        this.input.amountF[i] = float40.fix2Float(tx.amount || 0);
+        this.input.amountF[i] = tx.amountF;
         this.input.txCompressedDataV2[i] = tx.onChain ?  0 : txUtils.buildTxCompressedDataV2(tx);
         this.input.toEthAddr[i] = Scalar.fromString(tx.toEthAddr || "0", 16);
         if (tx.toBjjSign !== undefined && tx.toBjjAy !== undefined){
