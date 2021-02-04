@@ -3,7 +3,7 @@ const Scalar = require("ffjavascript").Scalar;
 const ethers = require("ethers");
 
 const txUtils = require("../index").txUtils;
-const float16 = require("../index").float16;
+const float40 = require("../index").float40;
 const Constants = require("../index").Constants;
 
 describe("Tx-utils", function () {
@@ -13,7 +13,6 @@ describe("Tx-utils", function () {
             chainID: 1,
             fromIdx: 2,
             toIdx: 3,
-            amount: 4,
             tokenID: 5,
             nonce: 6,
             toBjjSign: true
@@ -25,7 +24,6 @@ describe("Tx-utils", function () {
         expect(Scalar.eq(tx.chainID, txDataDecoded.chainID)).to.be.equal(true);
         expect(Scalar.eq(tx.fromIdx, txDataDecoded.fromIdx)).to.be.equal(true);
         expect(Scalar.eq(tx.toIdx, txDataDecoded.toIdx)).to.be.equal(true);
-        expect(Scalar.eq(tx.amount, txDataDecoded.amount)).to.be.equal(true);
         expect(Scalar.eq(tx.tokenID, txDataDecoded.tokenID)).to.be.equal(true);
         expect(Scalar.eq(tx.nonce, txDataDecoded.nonce)).to.be.equal(true);
         expect(Scalar.eq(tx.toBjjSign, txDataDecoded.toBjjSign)).to.be.equal(true);
@@ -55,9 +53,9 @@ describe("Tx-utils", function () {
 
     it("tx round values", async () => {
         const testVector = [
-            [0x307B, "123000000"],
+            [123000000, "123000000"],
         ];
-        
+
         const tx = {
             amount: testVector[0][1],
         };
@@ -98,7 +96,7 @@ describe("Tx-utils", function () {
         const tx = {
             toIdx: 2**24 - 1,
             fromIdx: 2**30,
-            amount: float16.float2Fix(float16.fix2Float(Scalar.e("1982082637635472634987360"))),
+            amount: float40.round(Scalar.e("1982082637635472634987360")),
             userFee: 240,
         };
         const txData = `0x${txUtils.encodeL2Tx(tx, nLevels).toString(16)}`;
@@ -113,7 +111,7 @@ describe("Tx-utils", function () {
         const tx2 = {
             toIdx: Constants.nullIdx,
             fromIdx: 256,
-            amount: float16.float2Fix(float16.fix2Float(Scalar.fromString("10235000000000000000000000000000000"))),
+            amount: float40.round(Scalar.fromString("10235000000000000000000000000000000")),
             userFee: 0,
         };
 
@@ -158,7 +156,7 @@ describe("Tx-utils", function () {
         const nLevels = 32;
 
         const l1Tx = {
-            effectiveAmount: float16.round(Scalar.e("1000000000")),
+            effectiveAmount: float40.round(Scalar.e("1000000000")),
             toIdx: 2**24 - 1,
             fromIdx: 2**30 - 1
         };
@@ -168,8 +166,8 @@ describe("Tx-utils", function () {
 
         expect(txDataDecoded.userFee.toString()).to.be.equal(Scalar.e(0).toString());
         expect(txDataDecoded.effectiveAmount.toString()).to.be.equal(l1Tx.effectiveAmount.toString());
-        expect(txDataDecoded.effectiveAmountF.toString()).to.be.
-            equal(float16.fix2Float(l1Tx.effectiveAmount).toString());
+        expect(float40.float2Fix(txDataDecoded.effectiveAmountF).toString()).to.be.
+            equal(l1Tx.effectiveAmount.toString());
         expect(txDataDecoded.toIdx.toString()).to.be.equal(l1Tx.toIdx.toString());
         expect(txDataDecoded.fromIdx.toString()).to.be.equal(l1Tx.fromIdx.toString());
     });

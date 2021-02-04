@@ -8,7 +8,7 @@ const RollupDB = require("../index").RollupDB;
 const Constants = require("../index").Constants;
 const computeFee = require("../index").feeTable.computeFee;
 const txUtils = require("../index").txUtils;
-const float16 = require("../index").float16;
+const float40 = require("../index").float40;
 const { depositTx } = require("./helpers/test-utils");
 
 describe("Rollup Db - batchbuilder", async function(){
@@ -22,7 +22,7 @@ describe("Rollup Db - batchbuilder", async function(){
         const db = new SMTMemDB();
         const rollupDB = await RollupDB(db);
         const bb = await rollupDB.buildBatch(maxTx, nLevels, maxL1Tx);
-    
+
         const account1 = new Account(1);
         const account2 = new Account(2);
 
@@ -30,7 +30,7 @@ describe("Rollup Db - batchbuilder", async function(){
         depositTx(bb, account2, 1, 2000);
         depositTx(bb, account1, 2, 3000);
         depositTx(bb, account2, 2, 3000);
-    
+
         await bb.build();
         await rollupDB.consolidate(bb);
 
@@ -49,7 +49,7 @@ describe("Rollup Db - batchbuilder", async function(){
         expect(s2.balance.toString()).to.be.equal(Scalar.e(2000).toString());
         expect(s2.tokenID).to.be.equal(1);
         expect(s2.nonce).to.be.equal(0);
-    
+
         const bb2 = await rollupDB.buildBatch(maxTx, nLevels, maxL1Tx);
 
         const tx = {
@@ -63,10 +63,10 @@ describe("Rollup Db - batchbuilder", async function(){
 
         account1.signTx(tx);
         bb2.addTx(tx);
-    
+
         await bb2.build();
         await rollupDB.consolidate(bb2);
-    
+
         const s2_1 = await rollupDB.getStateByIdx(256);
         expect(s2_1.sign).to.be.equal(account1.sign);
         expect(s2_1.ay).to.be.equal(account1.ay);
@@ -90,15 +90,15 @@ describe("Rollup Db - batchbuilder", async function(){
         expect(s2_3.balance.toString()).to.be.equal(Scalar.e(3000).toString());
         expect(s2_3.tokenID).to.be.equal(2);
         expect(s2_3.nonce).to.be.equal(0);
-    
+
         const s3 = await rollupDB.getStateBySignAy(account1.sign, account1.ay);
         expect(lodash.isEqual(s3[0], s2_1)).to.be.equal(true);
         expect(lodash.isEqual(s3[1], s2_3)).to.be.equal(true);
-    
+
         const s4 = await rollupDB.getStateByEthAddr(account1.ethAddr);
         expect(lodash.isEqual(s4[0], s2_1)).to.be.equal(true);
         expect(lodash.isEqual(s4[1], s2_3)).to.be.equal(true);
-    
+
         const s5 = await rollupDB.getStateByEthAddr(account2.ethAddr);
         expect(lodash.isEqual(s5[0], s2_2)).to.be.equal(true);
 
@@ -107,7 +107,7 @@ describe("Rollup Db - batchbuilder", async function(){
         const L2TxDataDecoded = txUtils.decodeL2Tx(L2TxData, nLevels);
 
         expect(L2TxDataDecoded.userFee).to.be.equal(tx.userFee);
-        expect(Scalar.e(L2TxDataDecoded.amountF).toString()).to.be.equal(float16.fix2Float(tx.amount).toString());
+        expect(Scalar.e(L2TxDataDecoded.amountF).toString()).to.be.equal(float40.fix2Float(tx.amount).toString());
         expect(L2TxDataDecoded.fromIdx).to.be.equal(tx.fromIdx);
         expect(L2TxDataDecoded.toIdx).to.be.equal(tx.toIdx);
 
@@ -127,17 +127,17 @@ describe("Rollup Db - batchbuilder", async function(){
         const db = new SMTMemDB();
         const rollupDB = await RollupDB(db);
         const bb = await rollupDB.buildBatch(maxTx, nLevels, maxL1Tx);
-    
+
         const account1 = new Account(1);
         const account2 = new Account(2);
 
         depositTx(bb, account1, 1, 1000);
         depositTx(bb, account2, 1, 2000);
         depositTx(bb, account2, 1, 3000);
-    
+
         await bb.build();
         await rollupDB.consolidate(bb);
-    
+
         const bb2 = await rollupDB.buildBatch(maxTx, nLevels, maxL1Tx);
 
         const expectedToIdx = 258;
@@ -154,7 +154,7 @@ describe("Rollup Db - batchbuilder", async function(){
 
         account1.signTx(tx);
         bb2.addTx(tx);
-    
+
         await bb2.build();
         await rollupDB.consolidate(bb2);
 
@@ -172,7 +172,7 @@ describe("Rollup Db - batchbuilder", async function(){
         const L2TxDataDecoded = txUtils.decodeL2Tx(L2TxData, nLevels);
 
         expect(L2TxDataDecoded.userFee).to.be.equal(tx.userFee);
-        expect(Scalar.e(L2TxDataDecoded.amountF).toString()).to.be.equal(float16.fix2Float(tx.amount).toString());
+        expect(Scalar.e(L2TxDataDecoded.amountF).toString()).to.be.equal(float40.fix2Float(tx.amount).toString());
         expect(L2TxDataDecoded.fromIdx).to.be.equal(tx.fromIdx);
         expect(L2TxDataDecoded.toIdx).to.be.equal(expectedToIdx);
     });
@@ -182,17 +182,17 @@ describe("Rollup Db - batchbuilder", async function(){
         const db = new SMTMemDB();
         const rollupDB = await RollupDB(db);
         const bb = await rollupDB.buildBatch(maxTx, nLevels, maxL1Tx);
-    
+
         const account1 = new Account(1);
         const account2 = new Account(2);
 
         depositTx(bb, account1, 1, 1000);
         depositTx(bb, account2, 1, 2000);
         depositTx(bb, account2, 1, 3000);
-    
+
         await bb.build();
         await rollupDB.consolidate(bb);
-    
+
         const bb2 = await rollupDB.buildBatch(maxTx, nLevels, maxL1Tx);
 
         const expectedToIdx = 258;
@@ -211,7 +211,7 @@ describe("Rollup Db - batchbuilder", async function(){
 
         account1.signTx(tx);
         bb2.addTx(tx);
-    
+
         await bb2.build();
         await rollupDB.consolidate(bb2);
 
@@ -229,7 +229,7 @@ describe("Rollup Db - batchbuilder", async function(){
         const L2TxDataDecoded = txUtils.decodeL2Tx(L2TxData, nLevels);
 
         expect(L2TxDataDecoded.userFee).to.be.equal(tx.userFee);
-        expect(Scalar.e(L2TxDataDecoded.amountF).toString()).to.be.equal(float16.fix2Float(tx.amount).toString());
+        expect(Scalar.e(L2TxDataDecoded.amountF).toString()).to.be.equal(float40.fix2Float(tx.amount).toString());
         expect(L2TxDataDecoded.fromIdx).to.be.equal(tx.fromIdx);
         expect(L2TxDataDecoded.toIdx).to.be.equal(expectedToIdx);
     });
@@ -239,14 +239,14 @@ describe("Rollup Db - batchbuilder", async function(){
         const db = new SMTMemDB();
         const rollupDB = await RollupDB(db);
         const bb = await rollupDB.buildBatch(maxTx, nLevels, maxL1Tx);
-    
+
         const account1 = new Account(1);
 
         depositTx(bb, account1, 1, 1000);
-    
+
         await bb.build();
         await rollupDB.consolidate(bb);
-    
+
         const bb2 = await rollupDB.buildBatch(maxTx, nLevels, maxL1Tx);
 
         const tx = {
@@ -260,10 +260,10 @@ describe("Rollup Db - batchbuilder", async function(){
 
         account1.signTx(tx);
         bb2.addTx(tx);
-    
+
         await bb2.build();
         await rollupDB.consolidate(bb2);
-    
+
         const s1 = await rollupDB.getStateByIdx(256);
         expect(s1.sign).to.be.equal(account1.sign);
         expect(s1.ay).to.be.equal(account1.ay);
@@ -285,7 +285,7 @@ describe("Rollup Db - batchbuilder", async function(){
         const L2TxDataDecoded = txUtils.decodeL2Tx(L2TxData, nLevels);
 
         expect(L2TxDataDecoded.userFee).to.be.equal(tx.userFee);
-        expect(Scalar.e(L2TxDataDecoded.amountF).toString()).to.be.equal(float16.fix2Float(tx.amount).toString());
+        expect(Scalar.e(L2TxDataDecoded.amountF).toString()).to.be.equal(float40.fix2Float(tx.amount).toString());
         expect(L2TxDataDecoded.fromIdx).to.be.equal(tx.fromIdx);
         expect(L2TxDataDecoded.toIdx).to.be.equal(tx.toIdx);
 
@@ -304,25 +304,25 @@ describe("Rollup Db - batchbuilder", async function(){
         const db = new SMTMemDB();
         const rollupDB = await RollupDB(db);
         const bb = await rollupDB.buildBatch(maxTx, nLevels, maxL1Tx);
-        
+
         const account1 = new Account(1);
         const account2 = new Account(2);
 
         const feeAccount1 = new Account(3);
         const feeAccount2 = new Account(4);
-        
+
         depositTx(bb, account1, 1, 1000);
         depositTx(bb, account2, 1, 1000);
         depositTx(bb, account1, 2, 1000);
         depositTx(bb, account2, 2, 1000);
         depositTx(bb, feeAccount1, 1, 0);
         depositTx(bb, feeAccount2, 2, 0);
-        
+
         await bb.build();
         await rollupDB.consolidate(bb);
 
         const bb2 = await rollupDB.buildBatch(maxTx, nLevels, maxL1Tx);
-        
+
         const tx = {
             fromIdx: 256,
             toIdx: 257,
@@ -394,16 +394,16 @@ describe("Rollup Db - batchbuilder", async function(){
         const db = new SMTMemDB();
         const rollupDB = await RollupDB(db);
         const bb = await rollupDB.buildBatch(maxTx, nLevels, maxL1Tx);
-        
+
         const account1 = new Account(1);
         const account2 = new Account(2);
-        
+
         depositTx(bb, account1, 0, 1000);
         depositTx(bb, account2, 0, 2000);
-        
+
         await bb.build();
         await rollupDB.consolidate(bb);
-        
+
         const bb2 = await rollupDB.buildBatch(maxTx, nLevels, maxL1Tx);
 
         const tx = {
@@ -432,16 +432,16 @@ describe("Rollup Db - batchbuilder", async function(){
         const db = new SMTMemDB();
         const rollupDB = await RollupDB(db);
         const bb = await rollupDB.buildBatch(maxTx, nLevels, maxL1Tx);
-        
+
         const account1 = new Account(1);
         const account2 = new Account(2);
-        
+
         depositTx(bb, account1, 0, 1000);
         depositTx(bb, account2, 1, 2000);
-        
+
         await bb.build();
         await rollupDB.consolidate(bb);
-        
+
         const bb2 = await rollupDB.buildBatch(maxTx, nLevels, maxL1Tx);
 
         const tx = {
@@ -469,16 +469,16 @@ describe("Rollup Db - batchbuilder", async function(){
         const db = new SMTMemDB();
         const rollupDB = await RollupDB(db);
         const bb = await rollupDB.buildBatch(maxTx, nLevels, maxL1Tx);
-        
+
         const account1 = new Account(1);
         const account2 = new Account(2);
-        
+
         depositTx(bb, account1, 0, 1000);
         depositTx(bb, account2, 0, 2000);
-        
+
         await bb.build();
         await rollupDB.consolidate(bb);
-        
+
         const bb2 = await rollupDB.buildBatch(maxTx, nLevels, maxL1Tx);
 
         const tx = {
@@ -506,10 +506,10 @@ describe("Rollup Db - batchbuilder", async function(){
         const db = new SMTMemDB();
         const rollupDB = await RollupDB(db);
         const bb = await rollupDB.buildBatch(maxTx, nLevels, maxL1Tx);
-        
+
         const account1 = new Account(1);
         const account2 = new Account(2);
-        
+
         depositTx(bb, account1, 0, 1000);
         depositTx(bb, account2, 0, 2000);
 
@@ -541,24 +541,70 @@ describe("Rollup Db - batchbuilder", async function(){
         bb.addTx(tx1);
         bb.addFeeIdx(260);
         bb.addFeeIdx(261);
-        
+
         await bb.build();
 
         // Check L1, txsData, Fee data
-        const resL1Data = "7e5f4552091a69125d5dfcb7b8c2659029395bdf21b0a1688b37f77b1d1d5539ec3b826db5ac78b2513f574a04c50a7d4f8246d7"
-        + "00000000000003e80000000000000000000000002b5ad5c4795c026514f8317c7a215e218dccd6cf093985b1993d9f743f9d7d943ed56f38601cb8b1"
-        + "96db025f79650c4007c3054d00000000000008c80000000000000000000000007e5f4552091a69125d5dfcb7b8c2659029395bdf0000000000000000"
-        + "000000000000000000000000000000000000000000000000000000000100000000640000000000000000010100000000000000000000000000000000"
-        + "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
-        + "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
-        + "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
-        + "0000000000000000000000000000000000000000";
-        
-        const resTxsData = "000000000000000000000000000000000000000000000000010000000101006400000001000000010100327e000000000000000"
-        + "0000000000000000000000000000000000000000000000000000000000000000000000000";
+        const resL1Data =
+        "7e5f4552091a69125d5dfcb7b8c2659029395bdf" +
+        "21b0a1688b37f77b1d1d5539ec3b826db5ac78b2513f574a04c50a7d4f8246d7" +
+        "000000000000" +
+        "00000003e8" +
+        "0000000000" +
+        "00000000" +
+        "000000000000" +
+        "2b5ad5c4795c026514f8317c7a215e218dccd6cf" +
+        "093985b1993d9f743f9d7d943ed56f38601cb8b196db025f79650c4007c3054d" +
+        "000000000000" +
+        "00000007d0" +
+        "0000000000" +
+        "00000000" +
+        "000000000000" +
+        "7e5f4552091a69125d5dfcb7b8c2659029395bdf" +
+        "0000000000000000000000000000000000000000000000000000000000000000" +
+        "000000000100" +
+        "0000000000" +
+        "0000000064" +
+        "00000000" +
+        "000000000101" +
+        "0000000000000000000000000000000000000000" +
+        "0000000000000000000000000000000000000000000000000000000000000000" +
+        "000000000000" +
+        "0000000000" +
+        "0000000000" +
+        "00000000" +
+        "000000000000" +
+        "0000000000000000000000000000000000000000" +
+        "0000000000000000000000000000000000000000000000000000000000000000" +
+        "000000000000" +
+        "0000000000" +
+        "0000000000" +
+        "00000000" +
+        "000000000000" +
+        "0000000000000000000000000000000000000000" +
+        "0000000000000000000000000000000000000000000000000000000000000000" +
+        "000000000000" +
+        "0000000000" +
+        "0000000000" +
+        "00000000" +
+        "000000000000";
 
-        const resTxsDataSM = "0x000000000000000000000000000000000000000000000000010000000101006400000001000000010100327e";
-        
+        const resTxsData =
+            "0000000000000000000000000000" +
+            "0000000000000000000000000000" +
+            "0000010000000101000000006400" +
+            "000001000000010100000000327e" +
+            "0000000000000000000000000000" +
+            "0000000000000000000000000000" +
+            "0000000000000000000000000000" +
+            "0000000000000000000000000000";
+
+        const resTxsDataSM = "0x" +
+            "0000000000000000000000000000" +
+            "0000000000000000000000000000" +
+            "0000010000000101000000006400" +
+            "000001000000010100000000327e";
+
         const resFeeData = "00000104000001050000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
         + "0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
         + "0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
@@ -576,7 +622,7 @@ describe("Rollup Db - batchbuilder", async function(){
         expect(resFeeData).to.be.equal(batchFeeData.toString());
 
         // input hash
-        const resInputHash = "3848126546564667706487593362615536693612752021773034767490834988872001719450";
+        const resInputHash = "2825963540193729021203604026654366269353238748501171406399421372771690889426";
 
         const batchInputHash = await bb.getHashInputs();
         expect(resInputHash).to.be.equal(batchInputHash.toString());
@@ -587,25 +633,25 @@ describe("Rollup Db - batchbuilder", async function(){
         const db = new SMTMemDB();
         const rollupDB = await RollupDB(db);
         const bb = await rollupDB.buildBatch(maxTx, nLevels, maxL1Tx);
-        
+
         await bb.build();
         await rollupDB.consolidate(bb);
 
         // Check L1, L2, Fee data
-        const resL1Data = "0".repeat(864);
-        const resL2Data = "0".repeat(176);
+        const resL1Data = "0".repeat(864+6*6*2);
+        const resL2Data = "0".repeat(176+8*3*2);
         const resFeeData = "0".repeat(512);
 
         const batchL1Data = await bb.getL1TxsFullData();
         const batchL2Data = await bb.getL1L2TxsData();
         const batchFeeData = await bb.getFeeTxsData();
 
-        expect(resL1Data).to.be.equal(batchL1Data.toString());
-        expect(resL2Data).to.be.equal(batchL2Data.toString());
-        expect(resFeeData).to.be.equal(batchFeeData.toString());
+        expect(batchL1Data.toString()).to.be.equal(resL1Data);
+        expect(batchL2Data.toString()).to.be.equal(resL2Data);
+        expect(batchFeeData.toString()).to.be.equal(resFeeData);
 
         // input hash
-        const resInputHash = "19011969024068128992305188301756127300982198022714122490207475097638130021654";
+        const resInputHash = "9089028054588104462886776521837774802942784059202308502651705027859889271172";
 
         const batchInputHash = await bb.getHashInputs();
         expect(resInputHash).to.be.equal(batchInputHash.toString());
@@ -616,16 +662,16 @@ describe("Rollup Db - batchbuilder", async function(){
         const db = new SMTMemDB();
         const rollupDB = await RollupDB(db);
         const bb = await rollupDB.buildBatch(maxTx, nLevels, maxL1Tx);
-        
+
         const account1 = new Account(1);
         const account2 = new Account(2);
-        
+
         depositTx(bb, account1, 0, 1000);
         depositTx(bb, account2, 0, 2000);
-        
+
         await bb.build();
         await rollupDB.consolidate(bb);
-        
+
         let bb2 = await rollupDB.buildBatch(maxTx, nLevels, maxL1Tx);
         const currentNumBatch = bb2.currentNumBatch;
 

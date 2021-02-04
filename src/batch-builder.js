@@ -10,7 +10,7 @@ const feeUtils = require("./fee-table");
 const utils = require("./utils");
 const stateUtils = require("./state-utils");
 const txUtils = require("./tx-utils");
-const float16 = require("./float16");
+const float40 = require("./float40");
 const Constants = require("./constants");
 
 module.exports = class BatchBuilder {
@@ -50,13 +50,13 @@ module.exports = class BatchBuilder {
         this.chainIDB = 16;
         this.fromEthAddrB = 160;
         this.fromBjjCompressedB = 256;
-        this.f16B = 16;
+        this.f40B = 40;
         this.tokenIDB = 32;
         this.feeB = 8;
         this.numBatchB = 32;
 
-        this.L1TxFullB = this.fromEthAddrB + this.fromBjjCompressedB + 2*this.maxIdxB + this.tokenIDB + 2*this.f16B;
-        this.L1L2TxDataB = 2*this.idxB + this.f16B + this.feeB;
+        this.L1TxFullB = this.fromEthAddrB + this.fromBjjCompressedB + 2*this.maxIdxB + this.tokenIDB + 2*this.f40B;
+        this.L1L2TxDataB = 2*this.idxB + this.f40B + this.feeB;
 
         const inputL1TxsFullB = this.maxL1Tx * this.L1TxFullB;
         const inputTxsDataB = this.maxNTx * this.L1L2TxDataB;
@@ -64,7 +64,7 @@ module.exports = class BatchBuilder {
 
         this.sha256InputsB = 2*this.idxB + 3*this.rootB + this.chainIDB + inputL1TxsFullB + inputTxsDataB + inputFeeTxsB;
     }
-    
+
     /**
      * Add an empty transaction to the batch
      */
@@ -81,6 +81,7 @@ module.exports = class BatchBuilder {
             chainID: this.chainID,
         };
         this.input.txCompressedData[i] = txUtils.buildTxCompressedData(txNop);
+        this.input.amountF[i] = 0;
         this.input.txCompressedDataV2[i] = txUtils.buildTxCompressedDataV2(txNop);
         this.input.fromIdx[i] = 0;
         this.input.auxFromIdx[i] = 0;
@@ -143,7 +144,7 @@ module.exports = class BatchBuilder {
         this.input.isOld0_2[i] = 0;
         this.input.oldKey2[i] = 0;
         this.input.oldValue2[i] = 0;
-        
+
         if (i < this.maxNTx-1) {
             this.input.imOnChain[i] = 0;
             this.input.imOutIdx[i] = this.finalIdx;
@@ -177,8 +178,8 @@ module.exports = class BatchBuilder {
         }
 
         // Round values
-        const amountF = tx.amountF || float16.fix2Float(tx.amount || 0);
-        const amount = float16.float2Fix(amountF);
+        const amountF = tx.amountF || float40.fix2Float(tx.amount || 0);
+        const amount = float40.float2Fix(amountF);
         tx.amountF = amountF;
         tx.amount = amount;
 
@@ -195,7 +196,7 @@ module.exports = class BatchBuilder {
             fromSign = utils.extract(scalarFromBjjCompressed, 255, 1);
         }
 
-        let loadAmount = Scalar.e(float16.float2Fix(tx.loadAmountF) || 0);
+        let loadAmount = Scalar.e(float40.float2Fix(tx.loadAmountF || 0));
         if ((!tx.onChain) && (Scalar.gt(loadAmount, 0))){
             throw new Error("Load amount must be 0 for L2 txs");
         }
@@ -276,7 +277,7 @@ module.exports = class BatchBuilder {
             fee2Charge = Scalar.e(0);
         } else {
             fee2Charge = feeUtils.computeFee(tx.amount, tx.userFee);
-        }      
+        }
 
         // compute applyEthAddr
         let nullifyLoadAmount = false;
@@ -309,7 +310,7 @@ module.exports = class BatchBuilder {
             nullifyLoadAmount = true;
         }
 
-        let applyNullifierTokenID1ToAmount = false; 
+        let applyNullifierTokenID1ToAmount = false;
         if (applyNullifierTokenID1 && Scalar.gt(amount, 0)){
             applyNullifierTokenID1ToAmount = true;
         }
@@ -349,6 +350,7 @@ module.exports = class BatchBuilder {
         this.input.toIdx[i] = tx.toIdx;
         this.input.auxToIdx[i] = tx.auxToIdx || 0;
         this.input.txCompressedData[i] = txUtils.buildTxCompressedData(Object.assign({newAccount: newAccount}, tx));
+        this.input.amountF[i] = tx.amountF;
         this.input.txCompressedDataV2[i] = tx.onChain ?  0 : txUtils.buildTxCompressedDataV2(tx);
         this.input.toEthAddr[i] = Scalar.fromString(tx.toEthAddr || "0", 16);
         if (tx.toBjjSign !== undefined && tx.toBjjAy !== undefined){
@@ -400,7 +402,7 @@ module.exports = class BatchBuilder {
             newState2 = Object.assign({}, oldState2);
             newState2.balance = Scalar.add(oldState2.balance, effectiveAmount);
         }
-        
+
         if (op1=="INSERT") {
 
             this.finalIdx += 1;
@@ -427,7 +429,7 @@ module.exports = class BatchBuilder {
             // Database AxAy
             const keyAxAy = Scalar.add( Scalar.add(Constants.DB_AxAy, fromSign), Scalar.fromString(fromAy, 16));
             const lastAxAyStates = await this.dbState.get(keyAxAy);
-                
+
             // get last state and add last batch number
             let valStatesAxAy;
             let lastAxAyState;
@@ -476,7 +478,7 @@ module.exports = class BatchBuilder {
             } else {
                 valStatesEth = [...lastEthStates];
                 lastEthState = valStatesEth.slice(-1)[0];
-            } 
+            }
             if (!valStatesEth.includes(this.currentNumBatch)){
                 valStatesEth.push(this.currentNumBatch);
                 await this.dbState.multiIns([
@@ -517,7 +519,7 @@ module.exports = class BatchBuilder {
 
             // new entry according idx and batchNumber
             const keyIdBatch = poseidonHash([tx.auxFromIdx, this.currentNumBatch]);
-            
+
             await this.dbState.multiIns([
                 [newValueId, stateUtils.state2Array(newState1)],
                 [keyIdBatch, newValueId],
@@ -535,8 +537,8 @@ module.exports = class BatchBuilder {
             this.input.sign1[i]= Scalar.e(oldState1.sign);
             this.input.ay1[i]= Scalar.fromString(oldState1.ay, 16);
             this.input.tokenID1[i]= Scalar.e(oldState1.tokenID);
-            this.input.balance1[i]= oldState1.balance;  
-            this.input.nonce1[i]= oldState1.nonce; 
+            this.input.balance1[i]= oldState1.balance;
+            this.input.nonce1[i]= oldState1.nonce;
             this.input.ethAddr1[i]= Scalar.fromString(oldState1.ethAddr, 16);
 
             this.input.siblings1[i] = siblings;
@@ -554,10 +556,10 @@ module.exports = class BatchBuilder {
 
             // new state for idx
             const newValueId = poseidonHash([newValue, tx.fromIdx]);
-            
+
             // new entry according idx and batchNumber
             const keyIdBatch = poseidonHash([tx.fromIdx, this.currentNumBatch]);
-            
+
             await this.dbState.multiIns([
                 [newValueId, stateUtils.state2Array(newState1)],
                 [keyIdBatch, newValueId],
@@ -606,7 +608,7 @@ module.exports = class BatchBuilder {
                 this.input.balance2[i]= oldState2.balance;
                 this.input.newExit[i]= Scalar.e(0);
                 this.input.nonce2[i]= oldState2.nonce;
-                this.input.tokenID2[i]= Scalar.e(oldState2.tokenID); 
+                this.input.tokenID2[i]= Scalar.e(oldState2.tokenID);
                 this.input.ethAddr2[i]= Scalar.fromString(oldState2.ethAddr, 16);
 
                 this.input.siblings2[i] = siblings;
@@ -651,10 +653,10 @@ module.exports = class BatchBuilder {
 
                 // new state for idx
                 const newValueId = poseidonHash([newValue, finalToIdx]);
-                
+
                 // new entry according idx and batchNumber
                 const keyIdBatch = poseidonHash([finalToIdx, this.currentNumBatch]);
-               
+
                 await this.dbState.multiIns([
                     [newValueId, stateUtils.state2Array(newState2)],
                     [keyIdBatch, newValueId],
@@ -706,11 +708,11 @@ module.exports = class BatchBuilder {
         newBatchIdx = [...lastBatchIdx];
 
         if (op1 == "INSERT") {
-            if (!newBatchIdx.includes(tx.auxFromIdx)) newBatchIdx.push(tx.auxFromIdx); 
+            if (!newBatchIdx.includes(tx.auxFromIdx)) newBatchIdx.push(tx.auxFromIdx);
         }
 
         if (op1 == "UPDATE") {
-            if (!newBatchIdx.includes(tx.fromIdx)) newBatchIdx.push(tx.fromIdx); 
+            if (!newBatchIdx.includes(tx.fromIdx)) newBatchIdx.push(tx.fromIdx);
         }
 
         if (op2 == "UPDATE" && !isExit) {
@@ -749,7 +751,7 @@ module.exports = class BatchBuilder {
                     [keyNumBatchEthAddr, newStatesEthAddr],
                 ]);
             }
-        }  
+        }
     }
 
     /**
@@ -779,12 +781,12 @@ module.exports = class BatchBuilder {
      */
     async _transferFees(){
         this.input.imInitStateRootFee = this.stateTree.root;
-        
+
         // Fill all fee transactions
         for (let i = 0; i < this.totalFeeTransactions ; i++){
 
             this.input.imFinalAccFee[i] = this.feeTotals[i];
-            
+
             // Check if tokenID and feeIdx has been added properly, otherwise add NOP tx
             if ((i < this.nFeeIdxs) && (i < this.nTokens)){
 
@@ -819,9 +821,9 @@ module.exports = class BatchBuilder {
                     // get the input from the oldState
                     this.input.sign3[i]= Scalar.e(oldState.sign);
                     this.input.ay3[i]= Scalar.fromString(oldState.ay, 16);
-                    this.input.balance3[i]= oldState.balance;  
+                    this.input.balance3[i]= oldState.balance;
                     this.input.nonce3[i]= oldState.nonce;
-                    this.input.tokenID3[i]= oldState.tokenID; 
+                    this.input.tokenID3[i]= oldState.tokenID;
                     this.input.ethAddr3[i]= Scalar.fromString(oldState.ethAddr, 16);
                     this.input.siblings3[i] = siblings;
 
@@ -836,10 +838,10 @@ module.exports = class BatchBuilder {
 
                     // new state for idx
                     const newValueId = poseidonHash([newValue, feeIdx]);
-            
+
                     // new entry according idx and batchNumber
                     const keyIdBatch = poseidonHash([feeIdx, this.currentNumBatch]);
-            
+
                     await this.dbState.multiIns([
                         [newValueId, stateUtils.state2Array(newState)],
                         [keyIdBatch, newValueId],
@@ -858,14 +860,14 @@ module.exports = class BatchBuilder {
                     let newBatchIdx;
                     if (!lastBatchIdx) lastBatchIdx = [];
                     newBatchIdx = [...lastBatchIdx];
-                    
-                    if (!newBatchIdx.includes(feeIdx)) newBatchIdx.push(feeIdx); 
-                    
+
+                    if (!newBatchIdx.includes(feeIdx)) newBatchIdx.push(feeIdx);
+
                     await this.dbState.multiIns([
                         [keyNumBatchIdx, newBatchIdx],
                     ]);
 
-                } else if (op == "NOP"){ 
+                } else if (op == "NOP"){
                     this._addNopTxFee(i);
                 }
             } else {
@@ -878,7 +880,7 @@ module.exports = class BatchBuilder {
      * Add auxiliar identifier to determine fromIdx if new account is created
      * @param {Object} tx - transaction object
      */
-    _addAuxFromIdx(tx){  
+    _addAuxFromIdx(tx){
         tx.auxFromIdx = this.finalIdx + 1;
     }
 
@@ -890,13 +892,13 @@ module.exports = class BatchBuilder {
         const resFind1 = await this.stateTree.find(tx.fromIdx);
         const foundValueId = poseidonHash([resFind1.foundValue, tx.fromIdx]);
         const tokenID1 = stateUtils.array2State(await this.dbState.get(foundValueId)).tokenID;
-        
+
         // Check if send to ethAddress or Bjj
         if (tx.toEthAddr != Constants.nullEthAddr){
             // Check first temporary states
             const keyEth = Scalar.add(Constants.DB_EthAddr, Scalar.fromString(tx.toEthAddr, 16));
             const newKeyEthBatch = poseidonHash([keyEth, this.currentNumBatch]);
-            const newIdxs = await this.dbState.get(newKeyEthBatch); 
+            const newIdxs = await this.dbState.get(newKeyEthBatch);
 
             // check temporary idxs to find tokenID matching
             if (newIdxs){
@@ -929,11 +931,11 @@ module.exports = class BatchBuilder {
             // get ax, ay from transaction
             const ay = tx.toBjjAy;
             const sign = tx.toBjjSign;
-            
+
             // Check first temporary states
             const keyAxAy = Scalar.add( Scalar.add(Constants.DB_AxAy, sign), Scalar.fromString(ay, 16));
             const newKeyAxAyBatch = poseidonHash([keyAxAy, this.currentNumBatch]);
-            const newIdxs = await this.dbState.get(newKeyAxAyBatch); 
+            const newIdxs = await this.dbState.get(newKeyAxAyBatch);
 
             // check temporary idxs to find tokenID matching
             if (newIdxs){
@@ -951,7 +953,7 @@ module.exports = class BatchBuilder {
 
             // check in previous consolidated states
             const oldStates = await this.rollupDB.getStateBySignAy(sign, ay);
-            if (!oldStates) throw new Error("trying to send to a non existing bjj address"); 
+            if (!oldStates) throw new Error("trying to send to a non existing bjj address");
             for (let i = oldStates.length - 1; i >= 0; i--){
                 const state2 = oldStates[i];
                 const tokenID2 = state2.tokenID;
@@ -973,7 +975,7 @@ module.exports = class BatchBuilder {
     _accumulateFees(tokenID, fee2Charge){
         // find token index
         const indexToken = this.feePlanTokens.indexOf(tokenID);
-        
+
         if (indexToken === -1) return;
         this.feeTotals[indexToken] = Scalar.add(this.feeTotals[indexToken], fee2Charge);
     }
@@ -984,7 +986,7 @@ module.exports = class BatchBuilder {
      */
     async build() {
         this.txs = [];
- 
+
         this.input = {
             // inputs for hash input
             oldLastIdx: this.finalIdx,
@@ -1011,6 +1013,7 @@ module.exports = class BatchBuilder {
 
             // transaction L1-L2
             txCompressedData: [],
+            amountF: [],
             txCompressedDataV2: [],
             fromIdx: [],
             auxFromIdx: [],
@@ -1107,12 +1110,12 @@ module.exports = class BatchBuilder {
         for (let j = 0; j < this.totalFeeTransactions; j++){
             this.input.feePlanTokens.push(this.feePlanTokens[j]);
         }
-        
+
         // Compute inputs feeIdxs
         for (let j = 0; j < this.totalFeeTransactions; j++){
             this.input.feeIdxs.push(this.feeIdxs[j]);
         }
-        
+
         this.builded = true;
     }
 
@@ -1142,7 +1145,7 @@ module.exports = class BatchBuilder {
         if (!this.builded) throw new Error("Batch must first be builded");
         return this.finalIdx;
     }
-    
+
     /**
      * Return the last state root before the batch is builded
      * @return {Scalar} State root
@@ -1151,7 +1154,7 @@ module.exports = class BatchBuilder {
         if (!this.builded) throw new Error("Batch must first be builded");
         return this.input.oldStateRoot;
     }
-        
+
     /**
      * Return the feePlanTokens object
      * @return {Object} FeePlanTokens object
@@ -1195,7 +1198,7 @@ module.exports = class BatchBuilder {
      */
     getInputsStr(){
         if (!this.builded) throw new Error("Batch must first be builded");
-        
+
         const oldLastIdx = this.getOldLastIdx();
         const newLastIdx = this.getNewLastIdx();
 
@@ -1205,10 +1208,10 @@ module.exports = class BatchBuilder {
 
         // L1TxData
         let L1FullTxsData = this.getL1TxsFullData();
-        
+
         // txsData
         let txsData = this.getL1L2TxsData();
-        
+
         // feeTxData
         const feeTxsData = this.getFeeTxsData();
 
@@ -1242,7 +1245,7 @@ module.exports = class BatchBuilder {
         return finalStr;
     }
 
-    /** 
+    /**
      * Return the encoded fee data availability
      * @return {String} Encoded fee data encoded as hexadecimal
      */
@@ -1271,7 +1274,7 @@ module.exports = class BatchBuilder {
     /**
      * Return the encoded L1 full data of all used L1 tx
      * Data saved in smart contract for all L1 tx:
-     * fromEthAddr | fromBjj-compressed | fromIdx | loadAmountFloat16 | amountFloat16 | tokenID | toIdx
+     * fromEthAddr | fromBjj-compressed | fromIdx | loadAmountFloat40 | amountFloat40 | tokenID | toIdx
      * @return {String} Encoded data available in hexadecimal
      */
     _L1TxsFullData() {
@@ -1292,7 +1295,7 @@ module.exports = class BatchBuilder {
      */
     getL1TxsFullData() {
         if (!this.builded) throw new Error("Batch must first be builded");
-        
+
         const dataL1Tx = this._L1TxsFullData();
         const dataL1NopTx = utils.padZeros("", (this.maxL1Tx - this.onChainTxs.length) * (this.L1TxFullB / 4));
 
@@ -1360,7 +1363,7 @@ module.exports = class BatchBuilder {
      */
     getL1L2TxsData() {
         if (!this.builded) throw new Error("Batch must first be builded");
-        
+
         const dataL1Tx = this._L1TxsData();
         const dataL2Tx = this._L2TxsData();
         const dataNopTx = this._nopTxsData();
@@ -1377,7 +1380,7 @@ module.exports = class BatchBuilder {
 
         const dataL1Tx = this._L1TxsData();
         const dataL2Tx = this._L2TxsData();
-        
+
         return `0x${dataL1Tx.concat(dataL2Tx)}`;
     }
 
@@ -1394,9 +1397,9 @@ module.exports = class BatchBuilder {
         for (let i=0; i<this.onChainTxs.length; i++) {
             const fromIdx = this.onChainTxs[i].fromIdx;
             const toIdx = this.onChainTxs[i].toIdx;
-            if (idxChanges[fromIdx] == undefined && fromIdx != 0) 
+            if (idxChanges[fromIdx] == undefined && fromIdx != 0)
                 idxChanges[fromIdx] = fromIdx;
-            if (idxChanges[toIdx] == undefined && toIdx != 0) 
+            if (idxChanges[toIdx] == undefined && toIdx != 0)
                 idxChanges[toIdx] = toIdx;
         }
 
@@ -1406,7 +1409,7 @@ module.exports = class BatchBuilder {
             const st = stateUtils.array2State(await this.dbState.get(foundValueId));
             st.idx = Number(idx);
             tmpState[idx] = st;
-        }   
+        }
 
         return tmpState;
     }
@@ -1417,16 +1420,16 @@ module.exports = class BatchBuilder {
      */
     addTx(tx) {
         if (this.builded) throw new Error("Batch already builded");
-        
+
         // Check Max Tx
         if (this.onChainTxs.length + this.offChainTxs.length >= this.maxNTx) {
             throw Error("Too many TX per batch");
         }
-        
+
         if (tx.onChain && (this.onChainTxs.length >= this.maxL1Tx)) {
             throw Error("Too many L1 TX per batch");
         }
-        
+
         // Add tx
         if (tx.onChain) {
             this.onChainTxs.push(tx);

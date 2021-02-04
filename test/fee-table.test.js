@@ -1,7 +1,7 @@
 const { expect } = require("chai");
 const Scalar = require("ffjavascript").Scalar;
 
-const float16 = require("../index").float16;
+const float40 = require("../index").float40;
 const { computeFee, tableAdjustedFee } = require("../index").feeTable;
 
 describe("Fee table", function () {
@@ -290,7 +290,7 @@ describe("Fee table", function () {
     });
 
     it("Compute fee error greater than 128", () =>{
-        const amountMaxTransfer = float16.float2Fix(0xFFFF);
+        const amountMaxTransfer = float40.float2Fix(0xF8000002FF);
         // This selected fee is the minimal fee to get an applied fee over 128 bits
         const selectedFee = 208;
 
