@@ -1,4 +1,5 @@
 const Scalar = require("ffjavascript").Scalar;
+const utils = require("./utils");
 
 /**
  * Convert a float to a fix
@@ -6,17 +7,14 @@ const Scalar = require("ffjavascript").Scalar;
  * @returns {Scalar} Scalar encoded in fix
  */
 function float2Fix(fl) {
-    const m = (fl & 0x3FF);
-    const e = (fl >> 11);
-    const e5 = (fl >> 10) & 1;
+    const flScalar = Scalar.e(fl);
+
+    const m = utils.extract(flScalar, 0, 35);
+    const e = utils.extract(flScalar, 35, 5);
 
     const exp = Scalar.pow(10, e);
 
-    let res = Scalar.mul(m, exp);
-    if (e5 && e) {
-        res = Scalar.add(res, Scalar.div(exp, 2));
-    }
-    return res;
+    return Scalar.mul(m, exp);
 }
 
 /**
