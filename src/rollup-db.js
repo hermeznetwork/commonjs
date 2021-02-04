@@ -12,9 +12,9 @@ class RollupDB {
 
     constructor(db, lastBatch, stateRoot, initialIdx, chainID) {
         this.db = db;
-        this.lastBatch = lastBatch;
-        this.stateRoot = stateRoot;
-        this.initialIdx = initialIdx;
+        this.lastBatch = lastBatch || 0;
+        this.stateRoot = stateRoot || 0;
+        this.initialIdx = initialIdx || 255;
         this.chainID = chainID;
     }
 
@@ -66,7 +66,7 @@ class RollupDB {
     async rollbackToBatch(numBatch){
         if (numBatch > this.lastBatch)
             throw new Error("Cannot rollback to future state");
-        
+
         // Update Idx database
         await this._updateIdx(numBatch);
         // Update AxAy database
@@ -80,9 +80,9 @@ class RollupDB {
         ]);
         const roots = await this.db.get(Scalar.add(Constants.DB_Batch, numBatch));
         this.lastBatch = numBatch;
-        if (numBatch === 0) 
+        if (numBatch === 0)
             this.stateRoot = Scalar.e(0);
-        else 
+        else
             this.stateRoot = roots[0];
     }
 
@@ -183,7 +183,7 @@ class RollupDB {
 
     /**
      * Get exit tree information for some account in an specific batch
-     * @param {Number} idx - merkle tree index   
+     * @param {Number} idx - merkle tree index
      * @param {Scalar} numBatch - Batch number
      * @returns {Object} Exit tree information
      */
@@ -214,7 +214,7 @@ class RollupDB {
     _findLastState(valueStates){
         const lastBatch = Scalar.e(this.lastBatch);
         for (let i = valueStates.length - 1; i >= 0; i--){
-            if (Scalar.leq(valueStates[i], lastBatch)) 
+            if (Scalar.leq(valueStates[i], lastBatch))
                 return valueStates[i];
         }
         return null;
@@ -287,7 +287,7 @@ class RollupDB {
                     await this.db.multiIns([
                         [keyIdx, states],
                     ]);
-                    alreadyUpdated.push(idx);   
+                    alreadyUpdated.push(idx);
                 }
             }
         }
@@ -316,7 +316,7 @@ class RollupDB {
                 if (!alreadyUpdated.includes(hashAxAy)){
                     const valueHashAxAy = await this.db.get(hashAxAy);
                     const ax = valueHashAxAy[0];
-                    const ay = valueHashAxAy[1];  
+                    const ay = valueHashAxAy[1];
                     const keyAxAy = Scalar.add(Scalar.add(Constants.DB_AxAy, ax), ay);
                     const states = await this.db.get(keyAxAy);
                     this._purgeStates(states, numBatch);
@@ -349,7 +349,7 @@ class RollupDB {
             const ethAddrToUpdate = await this.db.get(keyNumBatchEthAddr);
             if (!ethAddrToUpdate) continue;
             for (const ethAddr of ethAddrToUpdate) {
-                if (!alreadyUpdated.includes(ethAddr)){  
+                if (!alreadyUpdated.includes(ethAddr)){
                     const keyEthAddr = Scalar.add(Constants.DB_EthAddr, ethAddr);
                     const states = await this.db.get(keyEthAddr);
                     this._purgeStates(states, numBatch);
@@ -373,7 +373,7 @@ class RollupDB {
     /**
      * Removes all the States that are above or equal to the _numBatch
      * @param {Object} states - Object containing an array of states, indexes by batchNum
-     * @param {Scalar} _numBatch - Batch number 
+     * @param {Scalar} _numBatch - Batch number
      */
     async _purgeStates(states, _numBatch){
         const numBatch = Scalar.e(_numBatch);
@@ -388,7 +388,7 @@ class RollupDB {
             if (Scalar.leq(states[i], numBatch)){
                 indexFound = i+1;
                 break;
-            } 
+            }
         }
         if (indexFound !== null){
             states.splice(indexFound);
@@ -419,7 +419,7 @@ class RollupDB {
         const ax = Scalar.fromString(axStr, 16);
         const ay = Scalar.fromString(ayStr, 16);
         const compressedBuff = BabyJubJub.packPoint([ax, ay]);
-        
+
         let sign = 0;
         if (compressedBuff[31] & 0x80) {
             sign = 1;
