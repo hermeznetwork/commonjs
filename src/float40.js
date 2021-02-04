@@ -71,7 +71,7 @@ function floorFix2Float(_f){
 }
 
 /**
- * Round large integer by encode-decode in float16 encoding
+ * Round large integer by encode-decode in float40 encoding
  * @param {Scalar} fix
  * @returns {Scalar} fix rounded
  */
