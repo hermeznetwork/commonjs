@@ -1013,7 +1013,7 @@ module.exports = class BatchBuilder {
 
             // transaction L1-L2
             txCompressedData: [],
-            amountF:[],
+            amountF: [],
             txCompressedDataV2: [],
             fromIdx: [],
             auxFromIdx: [],
