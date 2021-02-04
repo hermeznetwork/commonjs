@@ -2,7 +2,7 @@ const { expect } = require("chai");
 const Scalar = require("ffjavascript").Scalar;
 const float40 = require("../index").float40;
 
-describe("Float16", function () {
+describe("Float40", function () {
 
     it("Test vectors floating point number", async () => {
         const testVector = [
