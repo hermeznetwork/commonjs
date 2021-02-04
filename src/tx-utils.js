@@ -226,7 +226,7 @@ function buildElement1(tx){
     let res = Scalar.e(0);
 
     res = Scalar.add(res, Scalar.fromString(tx.toEthAddr || "0", 16)); // ethAddr --> 160 bits
-    res = Scalar.add(res, Scalar.shl( float40.fix2Float(tx.amount || 0), 160)); // maxNumBatch --> 32 bits
+    res = Scalar.add(res, Scalar.shl(float40.fix2Float(tx.amount || 0), 160)); // amountF --> 40 bits
     res = Scalar.add(res, Scalar.shl(tx.maxNumBatch || 0, 200)); // maxNumBatch --> 32 bits
 
     return res;
