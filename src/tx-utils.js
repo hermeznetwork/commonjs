@@ -389,22 +389,21 @@ async function signBjjAuth(wallet, bjj, chainID, ethAddr) {
         chainId: parseChainID,
         verifyingContract: parseEthAddr
     };
-
     const types = {
         Authorise: [
-            { name: "provider", type: "string" },
-            { name: "autorisation", type: "string" },
-            { name: "bjjkey", type: "bytes32" }
+            { name: "Provider", type: "string" },
+            { name: "Autorisation", type: "string" },
+            { name: "BJJKey", type: "bytes32" }
         ]
     };
-
-
     const value = {
-        provider: Constants.EIP712Provider,
-        autorisation: Constants.createAccountMsg,
-        bjjkey: parseBjj,
+        Provider: Constants.EIP712Provider,
+        Autorisation: Constants.createAccountMsg,
+        BJJKey: parseBjj,
     };
-    return await wallet._signTypedData(domain, types, value);
+    let signer;
+    wallet._signer ? signer = wallet._signer : signer = wallet;
+    return await signer._signTypedData(domain, types, value);
 }
 
 module.exports = {

@@ -182,7 +182,7 @@ describe("Tx-utils", function () {
                 chainID: "0x004",
                 ethAddress: "0x7e5f4552091a69125d5dfcb7b8c2659029395bdf"
             },
-            expectedSignature: "0xa582a0b6fb2ea074fbe5b166364a9e7813898ed89ea252db8cb50d814c865e902984733902926dbe17236a0023096fa1d5767d472c9bb6553aef9d365bf560e41b"
+            expectedSignature: "0xf7d971bd778efb2af5ee3296e5af2858fb99cdab7642913633ad42b149474a803b6092c071b711c29ff6105dc80a9f9979354770fbbeba6efb99d26070438f9e1c"
         });
 
         testVectors.push({
@@ -192,7 +192,7 @@ describe("Tx-utils", function () {
                 chainID: "0x00",
                 ethAddress: "2b5ad5c4795c026514f8317c7a215e218dccd6cf"
             },
-            expectedSignature: "0x249201ea621de237b3df8032dbf316832760578fef56b761a750e5d5eb1ed16639d85c60bdb62791161897a038768a765cdcd523bebf6e084bf153d50af217071c"
+            expectedSignature: "0x248d054ddd52e3aeeee319e7ce4f5e74d3fa749412678c8c418be53c2c3357e97d257f79fb6426dc4c32589c4ab3c8af0f97b6c55a00b2eba14bef5bcc2c591b1c"
         });
 
         // this inputs has been taken from contracts repository to assure compatibility:
@@ -204,7 +204,7 @@ describe("Tx-utils", function () {
                 chainID: "7a69",
                 ethAddress: "0xf4e77E5Da47AC3125140c470c71cBca77B5c638c"
             },
-            expectedSignature: "0xebf4515134086051df3b8d35785c6712697871dc16082d86c6f6af33aece4a984ab73c0a00a3036dcf23a98fedf1a6e7238196f4cb7a94bfb7b8d1aa2be263ae1c"
+            expectedSignature: "0x578cca97ee23e0cbca2c66d7d3b3992395a2d68703058b626695c8ddf3ef13871e6f72f737fe0e13261167ed2a753fd27d12d473d0de85d646eaf53e0f1e3e431c"
         });
 
         for (let i = 0; i < testVectors.length; i++){
