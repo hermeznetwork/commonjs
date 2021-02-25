@@ -182,7 +182,7 @@ describe("Tx-utils", function () {
                 chainID: "0x004",
                 ethAddress: "0x7e5f4552091a69125d5dfcb7b8c2659029395bdf"
             },
-            expectedSignature: "0xf7d971bd778efb2af5ee3296e5af2858fb99cdab7642913633ad42b149474a803b6092c071b711c29ff6105dc80a9f9979354770fbbeba6efb99d26070438f9e1c"
+            expectedSignature: "0x9fc6793725e83c222399323ee3f28b8cecaf2e6346ce09d8ad3ba4bc6f35af071ef73894c196e02348cbdddce5727c21b56cdb2c30be8cf39a855edf698933bd1b"
         });
 
         testVectors.push({
@@ -192,7 +192,7 @@ describe("Tx-utils", function () {
                 chainID: "0x00",
                 ethAddress: "2b5ad5c4795c026514f8317c7a215e218dccd6cf"
             },
-            expectedSignature: "0x248d054ddd52e3aeeee319e7ce4f5e74d3fa749412678c8c418be53c2c3357e97d257f79fb6426dc4c32589c4ab3c8af0f97b6c55a00b2eba14bef5bcc2c591b1c"
+            expectedSignature: "0x8986091009d6b07de1139a7300bda464e422f38ed16543a7055b346b97267bfa16d8f7384394ab86315eb890e3e3269232c4f6c213e309a7d7c1b9c09850b1651b"
         });
 
         // this inputs has been taken from contracts repository to assure compatibility:
@@ -204,7 +204,7 @@ describe("Tx-utils", function () {
                 chainID: "7a69",
                 ethAddress: "0xf4e77E5Da47AC3125140c470c71cBca77B5c638c"
             },
-            expectedSignature: "0x578cca97ee23e0cbca2c66d7d3b3992395a2d68703058b626695c8ddf3ef13871e6f72f737fe0e13261167ed2a753fd27d12d473d0de85d646eaf53e0f1e3e431c"
+            expectedSignature: "0x2bc9cd018cb43bf0ce11863293fd8a4e79512aca742614c2775bf51bf41069b66f0db62db6f0e6e866368063b1ddda8e38688c477932f61aefb214d2f1a4f0901c"
         });
 
         for (let i = 0; i < testVectors.length; i++){
@@ -214,7 +214,7 @@ describe("Tx-utils", function () {
             const wallet = new ethers.Wallet(ethPrivKey);
             const computedSignature = await txUtils.signBjjAuth(wallet, bjjCompressed, chainID, ethAddress);
 
-            expect(expectedSignature).to.be.equal(computedSignature);
+            expect(computedSignature).to.be.equal(expectedSignature);
         }
     });
 });

@@ -390,15 +390,15 @@ async function signBjjAuth(wallet, bjj, chainID, ethAddr) {
         verifyingContract: parseEthAddr
     };
     const types = {
-        Authorise: [
+        Authorize: [
             { name: "Provider", type: "string" },
-            { name: "Autorisation", type: "string" },
+            { name: "Authorization", type: "string" },
             { name: "BJJKey", type: "bytes32" }
         ]
     };
     const value = {
         Provider: Constants.EIP712Provider,
-        Autorisation: Constants.createAccountMsg,
+        Authorization: Constants.createAccountMsg,
         BJJKey: parseBjj,
     };
     let signer;
