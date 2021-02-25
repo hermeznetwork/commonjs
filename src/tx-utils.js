@@ -1,7 +1,6 @@
 const Scalar = require("ffjavascript").Scalar;
 const poseidonHash = require("circomlib").poseidon;
 const eddsa = require("circomlib").eddsa;
-const ethers = require("ethers");
 
 const float40 = require("./float40");
 const utils = require("./utils");
@@ -359,48 +358,52 @@ function decodeL2Tx(l2TxEncoded, nLevels){
  * @param {String} ethAddr - Ethereum address encoded as hexadecimal string
  */
 async function signBjjAuth(wallet, bjj, chainID, ethAddr) {
+
     let parseBjj;
-    if (bjj.substr(0, 2) === "0x"){
+    if (bjj.substr(0, 2) === "0x") {
         parseBjj = bjj;
     } else {
         parseBjj = `0x${bjj}`;
     }
 
     let parseEthAddr;
-    if (ethAddr.substr(0, 2) === "0x"){
+    if (ethAddr.substr(0, 2) === "0x") {
         parseEthAddr = ethAddr;
     } else {
         parseEthAddr = `0x${ethAddr}`;
     }
 
     let parseChainID;
-    if (chainID.substr(0, 2) === "0x"){
+
+    if (chainID.substr(0, 2) === "0x") {
         parseChainID = chainID;
     } else {
         parseChainID = `0x${chainID}`;
     }
 
-    // message header = 66 bytes
-    const AccountCreationAuthMsgArray = ethers.utils.toUtf8Bytes(Constants.createAccountMsg);
+    parseChainID = parseInt(parseChainID, 16);
 
-    // message header +    bjj   + chainID + ethAddr  = 120 bytes
-    //    66 bytes    + 32 bytes + 2 bytes + 20 bytes = 120 bytes
-    const bytesBjj = 32;
-    const bytesChainID = 2;
-    const bytesEthAddr = 20;
-
-    const messageHex = ethers.utils.hexlify(AccountCreationAuthMsgArray)
-                       + ethers.utils.hexZeroPad(parseBjj, bytesBjj).slice(2)
-                       + ethers.utils.hexZeroPad(parseChainID, bytesChainID).slice(2)
-                       + ethers.utils.hexZeroPad(parseEthAddr, bytesEthAddr).slice(2);
-
-    const messageArray = ethers.utils.arrayify(messageHex);
-
-    // automatically concat "\x19Ethereum Signed Message:\n120" to the messageArray
-    // where `120`is the length of the messageArray
-    const flatSig = await wallet.signMessage(messageArray);
-    const signatureParams = ethers.utils.splitSignature(flatSig);
-    return flatSig.slice(0, -2) + signatureParams.v.toString(16);
+    const domain = {
+        name: Constants.EIP712Provider,
+        version: Constants.EIP712Version,
+        chainId: parseChainID,
+        verifyingContract: parseEthAddr
+    };
+    const types = {
+        Authorise: [
+            { name: "Provider", type: "string" },
+            { name: "Autorisation", type: "string" },
+            { name: "BJJKey", type: "bytes32" }
+        ]
+    };
+    const value = {
+        Provider: Constants.EIP712Provider,
+        Autorisation: Constants.createAccountMsg,
+        BJJKey: parseBjj,
+    };
+    let signer;
+    wallet._signer ? signer = wallet._signer : signer = wallet;
+    return await signer._signTypedData(domain, types, value);
 }
 
 module.exports = {
