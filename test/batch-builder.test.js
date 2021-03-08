@@ -622,7 +622,7 @@ describe("Rollup Db - batchbuilder", async function(){
         expect(resFeeData).to.be.equal(batchFeeData.toString());
 
         // input hash
-        const resInputHash = "2825963540193729021203604026654366269353238748501171406399421372771690889426";
+        const resInputHash = "12514623173775018362376319619542083816299433114758195525580469850532085559598";
 
         const batchInputHash = await bb.getHashInputs();
         expect(resInputHash).to.be.equal(batchInputHash.toString());
