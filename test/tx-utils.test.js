@@ -155,19 +155,33 @@ describe("Tx-utils", function () {
     it("encode decode l1-tx", async () => {
         const nLevels = 32;
 
-        const l1Tx = {
-            effectiveAmount: float40.round(Scalar.e("1000000000")),
+        let l1Tx = {
+            amount: float40.round(Scalar.e("1000000000")),
+            isAmountNullified: false,
             toIdx: 2**24 - 1,
             fromIdx: 2**30 - 1
         };
 
-        const txData = `0x${txUtils.encodeL1Tx(l1Tx, nLevels).toString(16)}`;
-        const txDataDecoded = txUtils.decodeL1Tx(txData, nLevels);
+        let txData = `0x${txUtils.encodeL1Tx(l1Tx, nLevels).toString(16)}`;
+        let txDataDecoded = txUtils.decodeL1Tx(txData, nLevels);
 
         expect(txDataDecoded.userFee.toString()).to.be.equal(Scalar.e(0).toString());
-        expect(txDataDecoded.effectiveAmount.toString()).to.be.equal(l1Tx.effectiveAmount.toString());
+        expect(txDataDecoded.effectiveAmount.toString()).to.be.equal(l1Tx.amount.toString());
         expect(float40.float2Fix(txDataDecoded.effectiveAmountF).toString()).to.be.
-            equal(l1Tx.effectiveAmount.toString());
+            equal(l1Tx.amount.toString());
+        expect(txDataDecoded.toIdx.toString()).to.be.equal(l1Tx.toIdx.toString());
+        expect(txDataDecoded.fromIdx.toString()).to.be.equal(l1Tx.fromIdx.toString());
+
+        // set amountNullified to true
+        l1Tx.isAmountNullified = true;
+
+        txData = `0x${txUtils.encodeL1Tx(l1Tx, nLevels).toString(16)}`;
+        txDataDecoded = txUtils.decodeL1Tx(txData, nLevels);
+
+        expect(txDataDecoded.userFee.toString()).to.be.equal(Scalar.e(0).toString());
+        expect(txDataDecoded.effectiveAmount.toString()).to.be.equal(Scalar.e(0).toString());
+        expect(float40.float2Fix(txDataDecoded.effectiveAmountF).toString()).to.be.
+            equal(Scalar.e(0).toString());
         expect(txDataDecoded.toIdx.toString()).to.be.equal(l1Tx.toIdx.toString());
         expect(txDataDecoded.fromIdx.toString()).to.be.equal(l1Tx.fromIdx.toString());
     });

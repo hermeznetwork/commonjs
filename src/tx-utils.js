@@ -267,7 +267,7 @@ function encodeL1Tx(tx, nLevels){
 
     let res = Scalar.e(0);
     res = Scalar.add(res, Scalar.e(0)); // fee for L1 transaction is 0
-    res = Scalar.add(res, Scalar.shl(float40.fix2Float(tx.effectiveAmount), userFeeB));
+    res = Scalar.add(res, Scalar.shl(float40.fix2Float(tx.isAmountNullified ? Scalar.e(0): tx.amount), userFeeB));
     res = Scalar.add(res, Scalar.shl(tx.toIdx, f40B + userFeeB));
     res = Scalar.add(res, Scalar.shl(tx.fromIdx, idxB + f40B + userFeeB));
 

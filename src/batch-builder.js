@@ -325,11 +325,11 @@ module.exports = class BatchBuilder {
         }
 
         let effectiveAmount = amount;
-        if (nullifyAmount){
-            effectiveAmount = Scalar.e(0);
+        if (tx.onChain && Scalar.eq(effectiveAmount, float40.float2Fix(Constants.maxAmountF))){
+            effectiveAmount = oldState1.balance;
         }
 
-        const underFlowOk = Scalar.geq(Scalar.sub( Scalar.sub( Scalar.add(oldState1.balance, effectiveLoadAmount), amount), fee2Charge), 0);
+        const underFlowOk = Scalar.geq(Scalar.sub( Scalar.sub( Scalar.add(oldState1.balance, effectiveLoadAmount), effectiveAmount), fee2Charge), 0);
         if (!underFlowOk) {
             if (tx.onChain) {
                 effectiveAmount = Scalar.e(0);
@@ -340,9 +340,15 @@ module.exports = class BatchBuilder {
             }
         }
 
-        // save isAmountNullified for each transaction
-        tx.effectiveAmount = effectiveAmount;
-        tx.isAmountNullified = !(!nullifyAmount && underFlowOk);
+        // save isAmountNullified for L1 transactions
+        if (tx.onChain){
+            tx.isAmountNullified = !(!nullifyAmount && underFlowOk);
+        }
+
+        // nullify effectiveAmount
+        if (tx.isAmountNullified){
+            effectiveAmount = Scalar.e(0);
+        }
 
         // TX INPUT CIRCUIT
         this.input.fromIdx[i] = tx.fromIdx;
@@ -577,14 +583,14 @@ module.exports = class BatchBuilder {
             let siblings = res.siblings;
             while (siblings.length<this.nLevels+1) siblings.push(Scalar.e(0));
 
-            // State 1
+            // State 2
             this.input.sign2[i] = 0x1234;    // It should not matter
             this.input.ay2[i] = 0x1234;      // It should not matter
             this.input.balance2[i] = 0x1234;      // must be 0 when inserting
             this.input.nonce2[i] = 0x1234;   // It should not matter
             this.input.tokenID2[i] = 0x1234; // It should not matter
             this.input.newExit[i] = 1;       // must be 1 to signal new exit leaf
-            this.input.ethAddr2[i] = this.input.fromEthAddr[i]; // In the onChain TX this must match
+            this.input.ethAddr2[i] = 0x1234; // It should not matter
             this.input.siblings2[i] = siblings;
             this.input.isOld0_2[i] = res.isOld0 ? 1 : 0;
             this.input.oldKey2[i] = res.isOld0 ? 0 : res.oldKey;

@@ -1,5 +1,6 @@
 const poseidonHash = require("circomlib").poseidon;
 const utils = require("ffjavascript").utils;
+const float40 = require("./float40");
 
 /**
  * Convert string to a big integer
@@ -35,3 +36,5 @@ module.exports.nullEthAddr = "0xffffffffffffffffffffffffffffffffffffffff";
 module.exports.createAccountMsg = "Account creation";
 module.exports.EIP712Version = "1";
 module.exports.EIP712Provider = "Hermez Network";
+module.exports.maxAmountF = 0xFFFFFFFFFF;
+module.exports.maxAmount = float40.float2Fix(0xFFFFFFFFFF);
