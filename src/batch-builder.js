@@ -577,14 +577,14 @@ module.exports = class BatchBuilder {
             let siblings = res.siblings;
             while (siblings.length<this.nLevels+1) siblings.push(Scalar.e(0));
 
-            // State 1
+            // State 2
             this.input.sign2[i] = 0x1234;    // It should not matter
             this.input.ay2[i] = 0x1234;      // It should not matter
             this.input.balance2[i] = 0x1234;      // must be 0 when inserting
             this.input.nonce2[i] = 0x1234;   // It should not matter
             this.input.tokenID2[i] = 0x1234; // It should not matter
             this.input.newExit[i] = 1;       // must be 1 to signal new exit leaf
-            this.input.ethAddr2[i] = this.input.fromEthAddr[i]; // In the onChain TX this must match
+            this.input.ethAddr2[i] = 0x1234; // It should not matter
             this.input.siblings2[i] = siblings;
             this.input.isOld0_2[i] = res.isOld0 ? 1 : 0;
             this.input.oldKey2[i] = res.isOld0 ? 0 : res.oldKey;
