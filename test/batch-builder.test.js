@@ -710,4 +710,123 @@ describe("Rollup Db - batchbuilder", async function(){
             expect(error.message.includes("maxNumBatch must be less than currentBatch")).to.be.equal(true);
         }
     });
+
+    it("Should process L1 force exit with max amount", async () => {
+        // Start a new state
+        const db = new SMTMemDB();
+        const rollupDB = await RollupDB(db);
+        const bb = await rollupDB.buildBatch(maxTx, nLevels, maxL1Tx);
+
+        const account1 = new Account(1);
+        const account2 = new Account(2);
+
+        depositTx(bb, account1, 0, 1000);
+        depositTx(bb, account2, 0, 2000);
+
+        await bb.build();
+        await rollupDB.consolidate(bb);
+
+        const bb2 = await rollupDB.buildBatch(maxTx, nLevels, maxL1Tx);
+
+        // L1 tx force exit
+        const tx = {
+            fromIdx: 256,
+            loadAmountF: 0,
+            tokenID: 0,
+            fromBjjCompressed: 0,
+            fromEthAddr: account1.ethAddr,
+            toIdx: Constants.exitIdx,
+            amountF: 10,
+            userFee: 0,
+            onChain: true
+        };
+
+        // L1 tx force exit
+        const tx2 = {
+            fromIdx: 256,
+            loadAmountF: 0,
+            tokenID: 0,
+            fromBjjCompressed: 0,
+            fromEthAddr: account1.ethAddr,
+            toIdx: Constants.exitIdx,
+            amountF: 0,
+            userFee: 0,
+            onChain: true
+        };
+
+        bb2.addTx(tx);
+        // bb2.addTx(tx2);
+
+        await bb2.build();
+        await rollupDB.consolidate(bb2);
+
+        // check balances
+        const s1 = await rollupDB.getStateByIdx(256);
+        // expect(s1.balance.toString()).to.be.equal(Scalar.e(1000).toString());
+
+        const s2 = await rollupDB.getStateByIdx(257);
+        // expect(s2.balance.toString()).to.be.equal(Scalar.e(2000).toString());
+
+        const s1_exit = await rollupDB.getExitTreeInfo(256, 2);
+        console.log(s1_exit);
+
+        const lastBatch = rollupDB.lastBatch;
+
+        for (let i = 0; i < lastBatch+1; i++){
+            const exitRoot = await rollupDB.getExitRoot(i);
+            console.log("exitRoot: ", exitRoot);
+        }
+        // expect(s1_exit.state.balance.toString()).to.be.equal(Scalar.e(1000).toString());
+    });
+
+    it("Should process L2 force exit with max amount", async () => {
+        // Start a new state
+        const db = new SMTMemDB();
+        const rollupDB = await RollupDB(db);
+        const bb = await rollupDB.buildBatch(maxTx, nLevels, maxL1Tx);
+
+        const account1 = new Account(1);
+        const account2 = new Account(2);
+
+        depositTx(bb, account1, 0, 1000);
+        depositTx(bb, account2, 0, 2000);
+
+        await bb.build();
+        await rollupDB.consolidate(bb);
+
+        const bb2 = await rollupDB.buildBatch(maxTx, nLevels, maxL1Tx);
+
+        // L1 tx force exit
+        const tx = {
+            fromIdx: 256,
+            toIdx: Constants.exitIdx,
+            tokenID: 1,
+            amount: Scalar.e(0),
+            nonce: 0,
+            userFee: 126, // effective fee is 4
+        };
+        account1.signTx(tx);
+        bb2.addTx(tx);
+
+        await bb2.build();
+        await rollupDB.consolidate(bb2);
+
+        // check balances
+        const s1 = await rollupDB.getStateByIdx(256);
+        expect(s1.balance.toString()).to.be.equal(Scalar.e(1000).toString());
+
+        const s2 = await rollupDB.getStateByIdx(257);
+        expect(s2.balance.toString()).to.be.equal(Scalar.e(2000).toString());
+
+        const s1_exit = await rollupDB.getExitTreeInfo(256, 2);
+        console.log(s1_exit);
+
+        const lastBatch = rollupDB.lastBatch;
+
+        for (let i = 0; i < lastBatch+1; i++){
+            const exitRoot = await rollupDB.getExitRoot(i);
+            console.log("exitRoot: ", exitRoot);
+        }
+        // expect(s1_exit.state.balance.toString()).to.be.equal(Scalar.e(1000).toString());
+    });
 });
