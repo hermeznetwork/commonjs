@@ -329,7 +329,7 @@ module.exports = class BatchBuilder {
             effectiveAmount = Scalar.e(0);
         }
 
-        const underFlowOk = Scalar.geq(Scalar.sub( Scalar.sub( Scalar.add(oldState1.balance, effectiveLoadAmount), amount), fee2Charge), 0);
+        const underFlowOk = Scalar.geq(Scalar.sub( Scalar.sub( Scalar.add(oldState1.balance, effectiveLoadAmount), effectiveAmount), fee2Charge), 0);
         if (!underFlowOk) {
             if (tx.onChain) {
                 effectiveAmount = Scalar.e(0);
@@ -568,30 +568,43 @@ module.exports = class BatchBuilder {
         }
 
         if (op2=="INSERT") {
-            const newValue = stateUtils.hashState(newState2);
-
-            const res = await this.exitTree.insert(tx.fromIdx, newValue);
-            if (res.found) {
-                throw new Error("Invalid Exit account");
-            }
-            let siblings = res.siblings;
-            while (siblings.length<this.nLevels+1) siblings.push(Scalar.e(0));
-
             // State 2
             this.input.sign2[i] = 0x1234;    // It should not matter
             this.input.ay2[i] = 0x1234;      // It should not matter
-            this.input.balance2[i] = 0x1234;      // must be 0 when inserting
+            this.input.balance2[i] = 0x1234; // It should not matter
             this.input.nonce2[i] = 0x1234;   // It should not matter
             this.input.tokenID2[i] = 0x1234; // It should not matter
-            this.input.newExit[i] = 1;       // must be 1 to signal new exit leaf
             this.input.ethAddr2[i] = 0x1234; // It should not matter
-            this.input.siblings2[i] = siblings;
-            this.input.isOld0_2[i] = res.isOld0 ? 1 : 0;
-            this.input.oldKey2[i] = res.isOld0 ? 0 : res.oldKey;
-            this.input.oldValue2[i] = res.isOld0 ? 0 : res.oldValue;
 
-            const newValueId = poseidonHash([newValue, tx.fromIdx]);
-            await this.dbExit.multiIns([[newValueId, stateUtils.state2Array(newState2)]]);
+            // if original amount is 0, leaf is not inserted in the exit tree
+            if (!Scalar.eq(tx.amount, 0)){
+                const newValue = stateUtils.hashState(newState2);
+
+                const res = await this.exitTree.insert(tx.fromIdx, newValue);
+                if (res.found) {
+                    throw new Error("Invalid Exit account");
+                }
+                let siblings = res.siblings;
+                while (siblings.length<this.nLevels+1) siblings.push(Scalar.e(0));
+
+                this.input.newExit[i] = 1;   // must be 1 to signal new exit leaf
+                this.input.siblings2[i] = siblings;
+                this.input.isOld0_2[i] = res.isOld0 ? 1 : 0;
+                this.input.oldKey2[i] = res.isOld0 ? 0 : res.oldKey;
+                this.input.oldValue2[i] = res.isOld0 ? 0 : res.oldValue;
+
+                const newValueId = poseidonHash([newValue, tx.fromIdx]);
+                await this.dbExit.multiIns([[newValueId, stateUtils.state2Array(newState2)]]);
+            } else {
+                this.input.newExit[i] = tx.onChain ? 0x1234 : 1;
+                this.input.siblings2[i] = [];
+                for (let j=0; j<this.nLevels+1; j++) {
+                    this.input.siblings2[i][j]= 0;
+                }
+                this.input.isOld0_2[i] = 0;
+                this.input.oldKey2[i] = 0;
+                this.input.oldValue2[i] = 0;
+            }
 
         } else if (op2=="UPDATE") {
             if (isExit) {
@@ -601,25 +614,38 @@ module.exports = class BatchBuilder {
                 let siblings = res.siblings;
                 while (siblings.length<this.nLevels+1) siblings.push(Scalar.e(0));
 
-                // State 2
-                //It should not matter what the Tx have, because we get the input from the oldState
-                this.input.sign2[i]= Scalar.e(oldState2.sign);
-                this.input.ay2[i]= Scalar.fromString(oldState2.ay, 16);
-                this.input.balance2[i]= oldState2.balance;
-                this.input.newExit[i]= Scalar.e(0);
-                this.input.nonce2[i]= oldState2.nonce;
-                this.input.tokenID2[i]= Scalar.e(oldState2.tokenID);
-                this.input.ethAddr2[i]= Scalar.fromString(oldState2.ethAddr, 16);
-
                 this.input.siblings2[i] = siblings;
                 this.input.isOld0_2[i]= 0;
                 this.input.oldKey2[i]= 0x1234;      // It should not matter
                 this.input.oldValue2[i]= 0x1234;    // It should not matter
 
-                const newValueId = poseidonHash([newValue, tx.fromIdx]);
-                const oldValueId = poseidonHash([resFindExit.foundValue, tx.fromIdx]);
-                await this.dbExit.multiDel([oldValueId]);
-                await this.dbExit.multiIns([[newValueId, stateUtils.state2Array(newState2)]]);
+                if (!Scalar.eq(tx.amount, 0)){
+                    // State 2
+                    //It should not matter what the Tx have, because we get the input from the oldState
+                    this.input.sign2[i]= Scalar.e(oldState2.sign);
+                    this.input.ay2[i]= Scalar.fromString(oldState2.ay, 16);
+                    this.input.balance2[i]= oldState2.balance;
+                    this.input.newExit[i]= Scalar.e(0);
+                    this.input.nonce2[i]= oldState2.nonce;
+                    this.input.tokenID2[i]= Scalar.e(oldState2.tokenID);
+                    this.input.ethAddr2[i]= Scalar.fromString(oldState2.ethAddr, 16);
+
+                    const newValueId = poseidonHash([newValue, tx.fromIdx]);
+                    const oldValueId = poseidonHash([resFindExit.foundValue, tx.fromIdx]);
+                    await this.dbExit.multiDel([oldValueId]);
+                    await this.dbExit.multiIns([[newValueId, stateUtils.state2Array(newState2)]]);
+                } else {
+                    // should not matter since exit is equal 0 and processor2 is not operational
+                    // tokenID2 is still checked in L2 tx and must match
+                    this.input.sign2[i] = 0x1234;    // It should not matter
+                    this.input.ay2[i] = 0x1234;      // It should not matter
+                    this.input.balance2[i] = 0x1234; // It should not matter
+                    this.input.newExit[i]= Scalar.e(0);
+                    this.input.nonce2[i] = 0x1234;   // It should not matter
+                    this.input.tokenID2[i] = tx.onChain ? 0x1234 : Scalar.e(oldState2.tokenID);
+                    this.input.ethAddr2[i] = 0x1234; // It should not matter
+
+                }
             } else {
                 const newValue = stateUtils.hashState(newState2);
 
