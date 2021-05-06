@@ -1,6 +1,6 @@
 {
   "name": "@hermeznetwork/commonjs",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "description": "hermez network common js implementation",
   "main": "index.js",
   "directories": {
