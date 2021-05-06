@@ -299,6 +299,214 @@ describe("Rollup Db - batchbuilder", async function(){
         expect(exitRootNonExisting).to.be.equal(null);
     });
 
+    it("Should process L2 exit with 0 amount", async () => {
+        // Start a new state
+        const db = new SMTMemDB();
+        const rollupDB = await RollupDB(db);
+        const bb = await rollupDB.buildBatch(maxTx, nLevels, maxL1Tx);
+
+        const account1 = new Account(1);
+
+        depositTx(bb, account1, 1, 1000);
+
+        await bb.build();
+        await rollupDB.consolidate(bb);
+
+        const bb2 = await rollupDB.buildBatch(maxTx, nLevels, maxL1Tx);
+
+        const tx = {
+            fromIdx: 256,
+            toIdx: Constants.exitIdx,
+            tokenID: 1,
+            amount: Scalar.e(0),
+            nonce: 0,
+            userFee: 126, // effective fee is 4
+        };
+
+        account1.signTx(tx);
+        bb2.addTx(tx);
+
+        await bb2.build();
+        await rollupDB.consolidate(bb2);
+
+        const s1 = await rollupDB.getStateByIdx(256);
+        expect(s1.balance.toString()).to.be.equal(Scalar.e(1000).toString());
+
+        // check exit root is 0
+        const exitRoot = await rollupDB.getExitRoot(bb2.batchNumber);
+        expect(exitRoot.toString()).to.be.equal(Scalar.e(0).toString());
+    });
+
+    it("Should process L1 force exit with 0 amount", async () => {
+        // Start a new state
+        const db = new SMTMemDB();
+        const rollupDB = await RollupDB(db);
+        const bb = await rollupDB.buildBatch(maxTx, nLevels, maxL1Tx);
+
+        const account1 = new Account(1);
+
+        depositTx(bb, account1, 1, 1000);
+
+        await bb.build();
+        await rollupDB.consolidate(bb);
+
+        const bb2 = await rollupDB.buildBatch(maxTx, nLevels, maxL1Tx);
+
+        const tx = {
+            fromIdx: 256,
+            loadAmountF: 0,
+            tokenID: 1,
+            fromBjjCompressed: 0,
+            fromEthAddr: account1.ethAddr,
+            toIdx: Constants.exitIdx,
+            amount: 0,
+            userFee: 0,
+            onChain: true
+        };
+
+        bb2.addTx(tx);
+
+        await bb2.build();
+        await rollupDB.consolidate(bb2);
+
+        const s1 = await rollupDB.getStateByIdx(256);
+        expect(s1.balance.toString()).to.be.equal(Scalar.e(1000).toString());
+
+        // check exit root is 0
+        const exitRoot = await rollupDB.getExitRoot(bb2.batchNumber);
+        expect(exitRoot.toString()).to.be.equal(Scalar.e(0).toString());
+    });
+
+    it("Should process L2 transfer with 0 amount", async () => {
+        // Start a new state
+        const db = new SMTMemDB();
+        const rollupDB = await RollupDB(db);
+        const bb = await rollupDB.buildBatch(maxTx, nLevels, maxL1Tx);
+
+        const account1 = new Account(1);
+        const account2 = new Account(2);
+
+        depositTx(bb, account1, 1, 1000);
+        depositTx(bb, account2, 1, 1000);
+
+        await bb.build();
+        await rollupDB.consolidate(bb);
+
+        const bb2 = await rollupDB.buildBatch(maxTx, nLevels, maxL1Tx);
+
+        const tx = {
+            fromIdx: 256,
+            toIdx: 257,
+            tokenID: 1,
+            amount: Scalar.e(50),
+            nonce: 0,
+            userFee: 126, // effective fee is 4
+        };
+
+        account1.signTx(tx);
+        bb2.addTx(tx);
+
+        await bb2.build();
+        await rollupDB.consolidate(bb2);
+
+        // check balances
+        const s1 = await rollupDB.getStateByIdx(256);
+        expect(s1.balance.toString()).to.be.equal(Scalar.e(945).toString());
+
+        const s2 = await rollupDB.getStateByIdx(257);
+        expect(s2.balance.toString()).to.be.equal(Scalar.e(1050).toString());
+
+        const bb3 = await rollupDB.buildBatch(maxTx, nLevels, maxL1Tx);
+
+        const tx2 = {
+            fromIdx: 256,
+            toIdx: 257,
+            tokenID: 1,
+            amount: Scalar.e(0),
+            nonce: 1,
+            userFee: 126, // effective fee is 4
+        };
+
+        account1.signTx(tx2);
+        bb3.addTx(tx2);
+
+        await bb3.build();
+        await rollupDB.consolidate(bb3);
+
+        // check balances
+        const s1_2 = await rollupDB.getStateByIdx(256);
+        expect(s1_2.balance.toString()).to.be.equal(Scalar.e(945).toString());
+
+        const s2_2 = await rollupDB.getStateByIdx(257);
+        expect(s2_2.balance.toString()).to.be.equal(Scalar.e(1050).toString());
+    });
+
+    it("Should process L1 force transfer with 0 amount", async () => {
+        // Start a new state
+        const db = new SMTMemDB();
+        const rollupDB = await RollupDB(db);
+        const bb = await rollupDB.buildBatch(maxTx, nLevels, maxL1Tx);
+
+        const account1 = new Account(1);
+        const account2 = new Account(2);
+
+        depositTx(bb, account1, 1, 1000);
+        depositTx(bb, account2, 1, 1000);
+
+        await bb.build();
+        await rollupDB.consolidate(bb);
+
+        const bb2 = await rollupDB.buildBatch(maxTx, nLevels, maxL1Tx);
+
+        const tx = {
+            fromIdx: 256,
+            loadAmountF: 0,
+            tokenID: 1,
+            fromBjjCompressed: 0,
+            fromEthAddr: account1.ethAddr,
+            toIdx: 257,
+            amount: 50,
+            userFee: 0,
+            onChain: true
+        };
+        bb2.addTx(tx);
+
+        await bb2.build();
+        await rollupDB.consolidate(bb2);
+
+        // check balances
+        const s1 = await rollupDB.getStateByIdx(256);
+        expect(s1.balance.toString()).to.be.equal(Scalar.e(950).toString());
+
+        const s2 = await rollupDB.getStateByIdx(257);
+        expect(s2.balance.toString()).to.be.equal(Scalar.e(1050).toString());
+
+        const bb3 = await rollupDB.buildBatch(maxTx, nLevels, maxL1Tx);
+
+        const tx2 = {
+            fromIdx: 256,
+            loadAmountF: 0,
+            tokenID: 1,
+            fromBjjCompressed: 0,
+            fromEthAddr: account1.ethAddr,
+            toIdx: 257,
+            amount: 0,
+            userFee: 0,
+            onChain: true
+        };
+        bb3.addTx(tx2);
+
+        await bb3.build();
+        await rollupDB.consolidate(bb3);
+
+        // check balances
+        const s1_2 = await rollupDB.getStateByIdx(256);
+        expect(s1_2.balance.toString()).to.be.equal(Scalar.e(950).toString());
+
+        const s2_2 = await rollupDB.getStateByIdx(257);
+        expect(s2_2.balance.toString()).to.be.equal(Scalar.e(1050).toString());
+    });
+
     it("Should check fee accumulated, fee plan tokens, fee idxs & pay fees on L2", async () => {
         // Start a new state
         const db = new SMTMemDB();
