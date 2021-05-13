@@ -33,7 +33,6 @@
   "dependencies": {
     "chai": "^4.2.0",
     "circomlib": "^0.5.0",
-    "eip-712": "^0.4.3",
     "elliptic": "^6.5.3",
     "ethers": "5.0.24",
     "ethers-eip712": "^0.2.0",
