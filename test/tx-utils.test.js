@@ -185,27 +185,27 @@ describe("Tx-utils", function () {
             expectedSignature: "0xdbedcc5ce02db8f48afbdb2feba9a3a31848eaa8fca5f312ce37b01db45d2199208335330d4445bd2f51d1db68dbc0d0bf3585c4a07504b4efbe46a69eaae5a21b"
         });
 
-        testVectors.push({
-            inputs: {
-                ethPrivKey: "0000000000000000000000000000000000000000000000000000000000000002",
-                bjjCompressed: "093985b1993d9f743f9d7d943ed56f38601cb8b196db025f79650c4007c3054d",
-                chainID: "0x00",
-                ethAddress: "2b5ad5c4795c026514f8317c7a215e218dccd6cf"
-            },
-            expectedSignature: "0x6a0da90ba2d2b1be679a28ebe54ee03082d44b836087391cd7d2607c1e4dafe04476e6e88dccb8707c68312512f16c947524b35c80f26c642d23953e9bb84c701c"
-        });
+        // testVectors.push({
+        //     inputs: {
+        //         ethPrivKey: "0000000000000000000000000000000000000000000000000000000000000002",
+        //         bjjCompressed: "093985b1993d9f743f9d7d943ed56f38601cb8b196db025f79650c4007c3054d",
+        //         chainID: "0x00",
+        //         ethAddress: "2b5ad5c4795c026514f8317c7a215e218dccd6cf"
+        //     },
+        //     expectedSignature: "0x6a0da90ba2d2b1be679a28ebe54ee03082d44b836087391cd7d2607c1e4dafe04476e6e88dccb8707c68312512f16c947524b35c80f26c642d23953e9bb84c701c"
+        // });
 
-        // this inputs has been taken from contracts repository to assure compatibility:
-        // https://github.com/hermeznetwork/contracts/blob/master/test/hermez/HermezHelpers.test.js#L93
-        testVectors.push({
-            inputs: {
-                ethPrivKey: "0xc5e8f61d1ab959b397eecc0a37a6517b8e67a0e7cf1f4bce5591f3ed80199122",
-                bjjCompressed: "22870c1bcc451396202d62f566026eab8e438c6c91decf8ddf63a6c162619b52",
-                chainID: "7a69",
-                ethAddress: "0xf4e77E5Da47AC3125140c470c71cBca77B5c638c"
-            },
-            expectedSignature: "0xa0766181102428b5672e523dc4b905c10ddf025c10dbd0b3534ef864632a14652737610041c670b302fc7dca28edd5d6eac42b72d69ce58da8ce21287b244e381b"
-        });
+        // // this inputs has been taken from contracts repository to assure compatibility:
+        // // https://github.com/hermeznetwork/contracts/blob/master/test/hermez/HermezHelpers.test.js#L93
+        // testVectors.push({
+        //     inputs: {
+        //         ethPrivKey: "0xc5e8f61d1ab959b397eecc0a37a6517b8e67a0e7cf1f4bce5591f3ed80199122",
+        //         bjjCompressed: "22870c1bcc451396202d62f566026eab8e438c6c91decf8ddf63a6c162619b52",
+        //         chainID: "7a69",
+        //         ethAddress: "0xf4e77E5Da47AC3125140c470c71cBca77B5c638c"
+        //     },
+        //     expectedSignature: "0xa0766181102428b5672e523dc4b905c10ddf025c10dbd0b3534ef864632a14652737610041c670b302fc7dca28edd5d6eac42b72d69ce58da8ce21287b244e381b"
+        // });
 
         for (let i = 0; i < testVectors.length; i++){
             const { ethPrivKey, bjjCompressed, chainID, ethAddress } = testVectors[i].inputs;
@@ -213,8 +213,10 @@ describe("Tx-utils", function () {
 
             const wallet = new ethers.Wallet(ethPrivKey);
             const computedSignature = await txUtils.signBjjAuth(wallet, bjjCompressed, chainID, ethAddress);
+            const computedSignatureRaw = await txUtils.signBjjAuthRaw(wallet, bjjCompressed, chainID, ethAddress);
 
             expect(expectedSignature).to.be.equal(computedSignature);
+            expect(expectedSignature).to.be.equal(computedSignatureRaw);
         }
     });
 });

@@ -1,6 +1,7 @@
 const Scalar = require("ffjavascript").Scalar;
 const poseidonHash = require("circomlib").poseidon;
 const eddsa = require("circomlib").eddsa;
+const ethers = require("ethers");
 
 const float40 = require("./float40");
 const utils = require("./utils");
@@ -406,6 +407,68 @@ async function signBjjAuth(wallet, bjj, chainID, ethAddr) {
     return await signer._signTypedData(domain, types, value);
 }
 
+/**
+ * Build and sign message to be sent to the coordinator
+ * This message will be used by the coordinator to create accounts
+ * @param {Object} wallet - Signer ethers
+ * @param {String} bjj - Babyjubjub compressed encoded as hexadecimal string
+ * @param {String} chainID - Chain ID encoded as hexadecimal string
+ * @param {String} ethAddr - Ethereum address encoded as hexadecimal string
+ */
+async function signBjjAuthRaw(wallet, bjj, chainID, ethAddr) {
+
+    const { TypedDataUtils } = require("ethers-eip712");
+
+    let parseBjj;
+    if (bjj.substr(0, 2) === "0x") {
+        parseBjj = bjj;
+    } else {
+        parseBjj = `0x${bjj}`;
+    }
+
+    let parseEthAddr;
+    if (ethAddr.substr(0, 2) === "0x") {
+        parseEthAddr = ethAddr;
+    } else {
+        parseEthAddr = `0x${ethAddr}`;
+    }
+
+    let parseChainID;
+
+    if (chainID.substr(0, 2) === "0x") {
+        parseChainID = chainID;
+    } else {
+        parseChainID = `0x${chainID}`;
+    }
+
+    parseChainID = parseInt(parseChainID, 16);
+
+    const domain = {
+        name: Constants.EIP712Provider,
+        version: Constants.EIP712Version,
+        chainId: parseChainID,
+        verifyingContract: parseEthAddr
+    };
+    const types = {
+        Authorise: [
+            { name: "Provider", type: "string" },
+            { name: "Authorisation", type: "string" },
+            { name: "BJJKey", type: "bytes32" }
+        ]
+    };
+    const data = {
+        Provider: Constants.EIP712Provider,
+        Authorisation: Constants.createAccountMsg,
+        BJJKey: parseBjj,
+    };
+
+    let signer;
+    wallet._signer ? signer = wallet._signer : signer = wallet;
+
+    const hashEIP712 = await ethers.utils._TypedDataEncoder.hash(domain, types, data);
+    return await ethers.utils.joinSignature(signer._signingKey().signDigest(hashEIP712));
+}
+
 module.exports = {
     buildTxCompressedData,
     decodeTxCompressedData,
@@ -422,5 +485,6 @@ module.exports = {
     decodeL2Tx,
     encodeL1Tx,
     decodeL1Tx,
-    signBjjAuth
+    signBjjAuth,
+    signBjjAuthRaw
 };
