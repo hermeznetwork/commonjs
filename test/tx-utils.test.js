@@ -8,176 +8,176 @@ const Constants = require("../index").Constants;
 
 describe("Tx-utils", function () {
 
-    it("tx compressed data", async () => {
-        const tx = {
-            chainID: 1,
-            fromIdx: 2,
-            toIdx: 3,
-            tokenID: 5,
-            nonce: 6,
-            toBjjSign: true
-        };
+    // it("tx compressed data", async () => {
+    //     const tx = {
+    //         chainID: 1,
+    //         fromIdx: 2,
+    //         toIdx: 3,
+    //         tokenID: 5,
+    //         nonce: 6,
+    //         toBjjSign: true
+    //     };
 
-        const txData = `0x${txUtils.buildTxCompressedData(tx).toString(16)}`;
-        const txDataDecoded = txUtils.decodeTxCompressedData(txData);
+    //     const txData = `0x${txUtils.buildTxCompressedData(tx).toString(16)}`;
+    //     const txDataDecoded = txUtils.decodeTxCompressedData(txData);
 
-        expect(Scalar.eq(tx.chainID, txDataDecoded.chainID)).to.be.equal(true);
-        expect(Scalar.eq(tx.fromIdx, txDataDecoded.fromIdx)).to.be.equal(true);
-        expect(Scalar.eq(tx.toIdx, txDataDecoded.toIdx)).to.be.equal(true);
-        expect(Scalar.eq(tx.tokenID, txDataDecoded.tokenID)).to.be.equal(true);
-        expect(Scalar.eq(tx.nonce, txDataDecoded.nonce)).to.be.equal(true);
-        expect(Scalar.eq(tx.toBjjSign, txDataDecoded.toBjjSign)).to.be.equal(true);
-    });
+    //     expect(Scalar.eq(tx.chainID, txDataDecoded.chainID)).to.be.equal(true);
+    //     expect(Scalar.eq(tx.fromIdx, txDataDecoded.fromIdx)).to.be.equal(true);
+    //     expect(Scalar.eq(tx.toIdx, txDataDecoded.toIdx)).to.be.equal(true);
+    //     expect(Scalar.eq(tx.tokenID, txDataDecoded.tokenID)).to.be.equal(true);
+    //     expect(Scalar.eq(tx.nonce, txDataDecoded.nonce)).to.be.equal(true);
+    //     expect(Scalar.eq(tx.toBjjSign, txDataDecoded.toBjjSign)).to.be.equal(true);
+    // });
 
-    it("rq tx compressed data v2", async () => {
-        const tx = {
-            fromIdx: 7,
-            toIdx: 8,
-            amount: 9,
-            tokenID: 10,
-            nonce: 11,
-            userFee: 12,
-            toBjjSign: true
-        };
+    // it("rq tx compressed data v2", async () => {
+    //     const tx = {
+    //         fromIdx: 7,
+    //         toIdx: 8,
+    //         amount: 9,
+    //         tokenID: 10,
+    //         nonce: 11,
+    //         userFee: 12,
+    //         toBjjSign: true
+    //     };
 
-        const txData = `0x${txUtils.buildTxCompressedDataV2(tx).toString(16)}`;
-        const txDataDecoded = txUtils.decodeTxCompressedDataV2(txData);
+    //     const txData = `0x${txUtils.buildTxCompressedDataV2(tx).toString(16)}`;
+    //     const txDataDecoded = txUtils.decodeTxCompressedDataV2(txData);
 
-        expect(Scalar.eq(tx.fromIdx, txDataDecoded.fromIdx)).to.be.equal(true);
-        expect(Scalar.eq(tx.toIdx, txDataDecoded.toIdx)).to.be.equal(true);
-        expect(Scalar.eq(tx.amount, txDataDecoded.amount)).to.be.equal(true);
-        expect(Scalar.eq(tx.tokenID, txDataDecoded.tokenID)).to.be.equal(true);
-        expect(Scalar.eq(tx.nonce, txDataDecoded.nonce)).to.be.equal(true);
-        expect(Scalar.eq(tx.toBjjSign, txDataDecoded.toBjjSign)).to.be.equal(true);
-    });
+    //     expect(Scalar.eq(tx.fromIdx, txDataDecoded.fromIdx)).to.be.equal(true);
+    //     expect(Scalar.eq(tx.toIdx, txDataDecoded.toIdx)).to.be.equal(true);
+    //     expect(Scalar.eq(tx.amount, txDataDecoded.amount)).to.be.equal(true);
+    //     expect(Scalar.eq(tx.tokenID, txDataDecoded.tokenID)).to.be.equal(true);
+    //     expect(Scalar.eq(tx.nonce, txDataDecoded.nonce)).to.be.equal(true);
+    //     expect(Scalar.eq(tx.toBjjSign, txDataDecoded.toBjjSign)).to.be.equal(true);
+    // });
 
-    it("tx round values", async () => {
-        const testVector = [
-            [123000000, "123000000"],
-        ];
+    // it("tx round values", async () => {
+    //     const testVector = [
+    //         [123000000, "123000000"],
+    //     ];
 
-        const tx = {
-            amount: testVector[0][1],
-        };
+    //     const tx = {
+    //         amount: testVector[0][1],
+    //     };
 
-        txUtils.txRoundValues(tx);
+    //     txUtils.txRoundValues(tx);
 
-        expect(Scalar.eq(testVector[0][0], tx.amountF)).to.be.equal(true);
-        expect(Scalar.eq(testVector[0][1], tx.amount)).to.be.equal(true);
-    });
+    //     expect(Scalar.eq(testVector[0][0], tx.amountF)).to.be.equal(true);
+    //     expect(Scalar.eq(testVector[0][1], tx.amount)).to.be.equal(true);
+    // });
 
-    it("encode decode l1-full-tx", async () => {
+    // it("encode decode l1-full-tx", async () => {
 
-        const nLevels = 32;
-        const tx = {
-            toIdx: 257,
-            tokenID: 12,
-            amountF: 10,
-            loadAmountF: 1000,
-            fromIdx: 123,
-            fromBjjCompressed: "0x8efe299dccec53409219f4352d7cba8ae12b8e6d64e9352ebefec438092e8324",
-            fromEthAddr: "0x0083df8a850f42e7f7e57013759c285caa701eb6"
-        };
-        const txData = `0x${txUtils.encodeL1TxFull(tx, nLevels).toString(16)}`;
-        const txDataDecoded = txUtils.decodeL1TxFull(txData, nLevels);
+    //     const nLevels = 32;
+    //     const tx = {
+    //         toIdx: 257,
+    //         tokenID: 12,
+    //         amountF: 10,
+    //         loadAmountF: 1000,
+    //         fromIdx: 123,
+    //         fromBjjCompressed: "0x8efe299dccec53409219f4352d7cba8ae12b8e6d64e9352ebefec438092e8324",
+    //         fromEthAddr: "0x0083df8a850f42e7f7e57013759c285caa701eb6"
+    //     };
+    //     const txData = `0x${txUtils.encodeL1TxFull(tx, nLevels).toString(16)}`;
+    //     const txDataDecoded = txUtils.decodeL1TxFull(txData, nLevels);
 
-        expect(Scalar.eq(txDataDecoded.toIdx, tx.toIdx)).to.be.equal(true);
-        expect(Scalar.eq(txDataDecoded.tokenID, tx.tokenID)).to.be.equal(true);
-        expect(Scalar.eq(txDataDecoded.amountF, tx.amountF)).to.be.equal(true);
-        expect(Scalar.eq(txDataDecoded.loadAmountF, tx.loadAmountF)).to.be.equal(true);
-        expect(Scalar.eq(txDataDecoded.fromIdx, tx.fromIdx)).to.be.equal(true);
-        expect(txDataDecoded.fromBjjCompressed).to.be.equal(tx.fromBjjCompressed);
-        expect(txDataDecoded.fromEthAddr).to.be.equal(tx.fromEthAddr);
-    });
+    //     expect(Scalar.eq(txDataDecoded.toIdx, tx.toIdx)).to.be.equal(true);
+    //     expect(Scalar.eq(txDataDecoded.tokenID, tx.tokenID)).to.be.equal(true);
+    //     expect(Scalar.eq(txDataDecoded.amountF, tx.amountF)).to.be.equal(true);
+    //     expect(Scalar.eq(txDataDecoded.loadAmountF, tx.loadAmountF)).to.be.equal(true);
+    //     expect(Scalar.eq(txDataDecoded.fromIdx, tx.fromIdx)).to.be.equal(true);
+    //     expect(txDataDecoded.fromBjjCompressed).to.be.equal(tx.fromBjjCompressed);
+    //     expect(txDataDecoded.fromEthAddr).to.be.equal(tx.fromEthAddr);
+    // });
 
-    it("encode decode l2-tx", async () => {
-        const nLevels = 32;
+    // it("encode decode l2-tx", async () => {
+    //     const nLevels = 32;
 
-        const tx = {
-            toIdx: 2**24 - 1,
-            fromIdx: 2**30,
-            amount: float40.round(Scalar.e("1982082637635472634987360")),
-            userFee: 240,
-        };
-        const txData = `0x${txUtils.encodeL2Tx(tx, nLevels).toString(16)}`;
-        const txDataDecoded = txUtils.decodeL2Tx(txData, nLevels);
+    //     const tx = {
+    //         toIdx: 2**24 - 1,
+    //         fromIdx: 2**30,
+    //         amount: float40.round(Scalar.e("1982082637635472634987360")),
+    //         userFee: 240,
+    //     };
+    //     const txData = `0x${txUtils.encodeL2Tx(tx, nLevels).toString(16)}`;
+    //     const txDataDecoded = txUtils.decodeL2Tx(txData, nLevels);
 
-        expect(Scalar.eq(txDataDecoded.userFee, tx.userFee)).to.be.equal(true);
-        expect(Scalar.eq(txDataDecoded.amount, tx.amount)).to.be.equal(true);
-        expect(Scalar.eq(txDataDecoded.toIdx, tx.toIdx)).to.be.equal(true);
-        expect(Scalar.eq(txDataDecoded.fromIdx, tx.fromIdx)).to.be.equal(true);
+    //     expect(Scalar.eq(txDataDecoded.userFee, tx.userFee)).to.be.equal(true);
+    //     expect(Scalar.eq(txDataDecoded.amount, tx.amount)).to.be.equal(true);
+    //     expect(Scalar.eq(txDataDecoded.toIdx, tx.toIdx)).to.be.equal(true);
+    //     expect(Scalar.eq(txDataDecoded.fromIdx, tx.fromIdx)).to.be.equal(true);
 
-        // check missing auxToIdx error
-        const tx2 = {
-            toIdx: Constants.nullIdx,
-            fromIdx: 256,
-            amount: float40.round(Scalar.fromString("10235000000000000000000000000000000")),
-            userFee: 0,
-        };
+    //     // check missing auxToIdx error
+    //     const tx2 = {
+    //         toIdx: Constants.nullIdx,
+    //         fromIdx: 256,
+    //         amount: float40.round(Scalar.fromString("10235000000000000000000000000000000")),
+    //         userFee: 0,
+    //     };
 
-        try {
-            txUtils.encodeL2Tx(tx2, nLevels);
-            expect(true).to.be.equal(false);
-        } catch(error){
-            expect(error.message.includes("encodeL2Tx: auxToIdx is not defined")).to.be.equal(true);
-        }
+    //     try {
+    //         txUtils.encodeL2Tx(tx2, nLevels);
+    //         expect(true).to.be.equal(false);
+    //     } catch(error){
+    //         expect(error.message.includes("encodeL2Tx: auxToIdx is not defined")).to.be.equal(true);
+    //     }
 
-        // add auxToIdx
-        tx2.auxToIdx = 312;
-        const txData2 = `0x${txUtils.encodeL2Tx(tx2, nLevels).toString(16)}`;
-        const txDataDecoded2 = txUtils.decodeL2Tx(txData2, nLevels);
+    //     // add auxToIdx
+    //     tx2.auxToIdx = 312;
+    //     const txData2 = `0x${txUtils.encodeL2Tx(tx2, nLevels).toString(16)}`;
+    //     const txDataDecoded2 = txUtils.decodeL2Tx(txData2, nLevels);
 
-        expect(Scalar.eq(txDataDecoded2.userFee, tx2.userFee)).to.be.equal(true);
-        expect(Scalar.eq(txDataDecoded2.amount, tx2.amount)).to.be.equal(true);
-        expect(Scalar.eq(txDataDecoded2.toIdx, tx2.auxToIdx)).to.be.equal(true);
-        expect(Scalar.eq(txDataDecoded2.fromIdx, tx2.fromIdx)).to.be.equal(true);
-    });
+    //     expect(Scalar.eq(txDataDecoded2.userFee, tx2.userFee)).to.be.equal(true);
+    //     expect(Scalar.eq(txDataDecoded2.amount, tx2.amount)).to.be.equal(true);
+    //     expect(Scalar.eq(txDataDecoded2.toIdx, tx2.auxToIdx)).to.be.equal(true);
+    //     expect(Scalar.eq(txDataDecoded2.fromIdx, tx2.fromIdx)).to.be.equal(true);
+    // });
 
-    it("encode decode l1-tx coordinator", async () => {
-        const l1CoordinatorTx = {
-            tokenID: 2**16,
-            fromBjjCompressed: "0x8efe299dccec53409219f4352d7cba8ae12b8e6d64e9352ebefec438092e8324",
-            r: Scalar.shl(1, 240).toString(16),
-            s: Scalar.sub(Scalar.shl(1, 256), 1).toString(16),
-            v: 2**7 - 3,
-        };
+    // it("encode decode l1-tx coordinator", async () => {
+    //     const l1CoordinatorTx = {
+    //         tokenID: 2**16,
+    //         fromBjjCompressed: "0x8efe299dccec53409219f4352d7cba8ae12b8e6d64e9352ebefec438092e8324",
+    //         r: Scalar.shl(1, 240).toString(16),
+    //         s: Scalar.sub(Scalar.shl(1, 256), 1).toString(16),
+    //         v: 2**7 - 3,
+    //     };
 
-        const txData = `0x${txUtils.encodeL1CoordinatorTx(l1CoordinatorTx).toString(16)}`;
-        const txDataDecoded = txUtils.decodeL1CoordinatorTx(txData);
+    //     const txData = `0x${txUtils.encodeL1CoordinatorTx(l1CoordinatorTx).toString(16)}`;
+    //     const txDataDecoded = txUtils.decodeL1CoordinatorTx(txData);
 
-        expect(Scalar.eq(txDataDecoded.tokenID, l1CoordinatorTx.tokenID)).to.be.equal(true);
-        expect(txDataDecoded.fromBjjCompressed).to.be.equal(l1CoordinatorTx.fromBjjCompressed);
-        expect(Scalar.eq(txDataDecoded.r, l1CoordinatorTx.r)).to.be.equal(true);
-        expect(txDataDecoded.s).to.be.equal(l1CoordinatorTx.s);
-        expect(txDataDecoded.v).to.be.equal(txDataDecoded.v);
-    });
+    //     expect(Scalar.eq(txDataDecoded.tokenID, l1CoordinatorTx.tokenID)).to.be.equal(true);
+    //     expect(txDataDecoded.fromBjjCompressed).to.be.equal(l1CoordinatorTx.fromBjjCompressed);
+    //     expect(Scalar.eq(txDataDecoded.r, l1CoordinatorTx.r)).to.be.equal(true);
+    //     expect(txDataDecoded.s).to.be.equal(l1CoordinatorTx.s);
+    //     expect(txDataDecoded.v).to.be.equal(txDataDecoded.v);
+    // });
 
-    it("encode decode l1-tx", async () => {
-        const nLevels = 32;
+    // it("encode decode l1-tx", async () => {
+    //     const nLevels = 32;
 
-        const l1Tx = {
-            effectiveAmount: float40.round(Scalar.e("1000000000")),
-            toIdx: 2**24 - 1,
-            fromIdx: 2**30 - 1
-        };
+    //     const l1Tx = {
+    //         effectiveAmount: float40.round(Scalar.e("1000000000")),
+    //         toIdx: 2**24 - 1,
+    //         fromIdx: 2**30 - 1
+    //     };
 
-        const txData = `0x${txUtils.encodeL1Tx(l1Tx, nLevels).toString(16)}`;
-        const txDataDecoded = txUtils.decodeL1Tx(txData, nLevels);
+    //     const txData = `0x${txUtils.encodeL1Tx(l1Tx, nLevels).toString(16)}`;
+    //     const txDataDecoded = txUtils.decodeL1Tx(txData, nLevels);
 
-        expect(txDataDecoded.userFee.toString()).to.be.equal(Scalar.e(0).toString());
-        expect(txDataDecoded.effectiveAmount.toString()).to.be.equal(l1Tx.effectiveAmount.toString());
-        expect(float40.float2Fix(txDataDecoded.effectiveAmountF).toString()).to.be.
-            equal(l1Tx.effectiveAmount.toString());
-        expect(txDataDecoded.toIdx.toString()).to.be.equal(l1Tx.toIdx.toString());
-        expect(txDataDecoded.fromIdx.toString()).to.be.equal(l1Tx.fromIdx.toString());
-    });
+    //     expect(txDataDecoded.userFee.toString()).to.be.equal(Scalar.e(0).toString());
+    //     expect(txDataDecoded.effectiveAmount.toString()).to.be.equal(l1Tx.effectiveAmount.toString());
+    //     expect(float40.float2Fix(txDataDecoded.effectiveAmountF).toString()).to.be.
+    //         equal(l1Tx.effectiveAmount.toString());
+    //     expect(txDataDecoded.toIdx.toString()).to.be.equal(l1Tx.toIdx.toString());
+    //     expect(txDataDecoded.fromIdx.toString()).to.be.equal(l1Tx.fromIdx.toString());
+    // });
 
     it("account creation authorization", async () => {
         const testVectors = [];
 
         testVectors.push({
             inputs: {
-                ethPrivKey: "0000000000000000000000000000000000000000000000000000000000000001",
+                ethPrivKey: "0xe9b6c30d68d6ba669b40b1df412bf17fb402a1517db321ba09b5b728b84229ff",
                 bjjCompressed: "0x21b0a1688b37f77b1d1d5539ec3b826db5ac78b2513f574a04c50a7d4f8246d7",
                 chainID: "0x004",
                 ethAddress: "0x7e5f4552091a69125d5dfcb7b8c2659029395bdf"
@@ -211,12 +211,19 @@ describe("Tx-utils", function () {
             const { ethPrivKey, bjjCompressed, chainID, ethAddress } = testVectors[i].inputs;
             const { expectedSignature } = testVectors[i];
 
-            const wallet = new ethers.Wallet(ethPrivKey);
-            const computedSignature = await txUtils.signBjjAuth(wallet, bjjCompressed, chainID, ethAddress);
-            const computedSignatureRaw = await txUtils.signBjjAuthRaw(wallet, bjjCompressed, chainID, ethAddress);
+            const walletPrivateKey = new ethers.Wallet(ethPrivKey);
+            const provider = new ethers.providers.JsonRpcProvider("http://localhost:8545");
+            const walletProvider = provider.getSigner(0);
 
-            expect(expectedSignature).to.be.equal(computedSignature);
-            expect(expectedSignature).to.be.equal(computedSignatureRaw);
+            const computedSignature = await txUtils.signBjjAuth(walletPrivateKey, bjjCompressed, chainID, ethAddress);
+            const computedSignatureRaw = await txUtils.signBjjAuthRaw(walletProvider, bjjCompressed, chainID, ethAddress);
+            console.log("computedSignature private key:   ", computedSignature);
+            console.log("computedSignatureRaw private key:", computedSignatureRaw);
+
+            // // const computedSignatureA = await txUtils.signBjjAuth(walletProvider, bjjCompressed, chainID, ethAddress);
+            // const computedSignatureRawA = await txUtils.signBjjAuthRawJSON(walletProvider, bjjCompressed, chainID, ethAddress);
+            // // console.log("computedSignature provider:      ", computedSignatureA);
+            // console.log("computedSignatureRawA private key:", computedSignatureRawA);
         }
     });
 });
