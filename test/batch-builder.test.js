@@ -304,6 +304,14 @@ describe("Rollup Db - batchbuilder", async function(){
         expect(s1_exit.state.accumulatedHash.toString()).to.be.equal(Scalar.e(0).toString());
         expect(s1_exit.state.exitBalance.toString()).to.be.equal(Scalar.e(50).toString());
 
+        const s1_state = await rollupDB.getStateTreeInfo(256, 2);
+        expect(s1_state.state.sign).to.be.equal(account1.sign);
+        expect(s1_state.state.ay).to.be.equal(account1.ay);
+        expect(s1_state.state.ethAddr).to.be.equal(account1.ethAddr);
+        expect(s1_state.state.balance.toString()).to.be.equal(Scalar.e(945).toString());
+        expect(s1_state.state.tokenID).to.be.equal(1);
+        expect(s1_state.state.nonce).to.be.equal(1);
+
         // check L2 tx data availability
         const L2TxData = await bb2._L2TxsData();
         const L2TxDataDecoded = txUtils.decodeL2Tx(L2TxData, nLevels);
