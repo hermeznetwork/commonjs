@@ -207,6 +207,31 @@ class RollupDB {
     }
 
     /**
+     * Get state tree information for some account in an specific batch
+     * @param {Number} idx - merkle tree index
+     * @param {Scalar} numBatch - Batch number
+     * @returns {Object} State tree information
+     */
+     async getStateTreeInfo(idx, numBatch){
+        const rootStateTree = await this.getStateRoot(numBatch);
+        if (!rootStateTree) return null;
+        const dbExit = new SMTTmpDb(this.db);
+        const tmpStateTree = new SMT(dbExit, rootStateTree);
+        const resFindState = await tmpStateTree.find(Scalar.e(idx));
+        // Get leaf information
+        if (resFindState.found) {
+            const foundValueId = poseidonHash([resFindState.foundValue, idx]);
+            const stateArray = await this.db.get(foundValueId);
+            const state = stateUtils.array2State(stateArray);
+            state.idx = Number(idx);
+            resFindState.state = state;
+            delete resFindState.foundValue;
+        }
+        delete resFindState.isOld0;
+        return resFindState;
+    }
+
+    /**
      * Given an array of states, return the last state, before or equal to the lastBatch
      * @param {Array} valueStates - Array of states
      * @returns {Object} State object
