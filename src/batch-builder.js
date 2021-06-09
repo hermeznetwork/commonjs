@@ -355,10 +355,10 @@ module.exports = class BatchBuilder {
         this.input.toEthAddr[i] = Scalar.fromString(tx.toEthAddr || "0", 16);
         if (tx.toBjjSign !== undefined && tx.toBjjAy !== undefined){
             // this.input.toBjjAx[i]= Scalar.fromString(stateUtils.getAx(tx.toBjjSign, tx.toBjjAy), 16);
-            this.input.toBjjAy[i]= Scalar.fromString(tx.toBjjAy, 16);
+            this.input.toBjjAy[i] = Scalar.fromString(tx.toBjjAy, 16);
         } else {
             // this.input.toBjjAx[i]= 0;
-            this.input.toBjjAy[i]= 0;
+            this.input.toBjjAy[i] = 0;
         }
         this.input.maxNumBatch[i] = tx.maxNumBatch || 0;
         this.input.onChain[i] = tx.onChain ? 1 : 0;
@@ -367,8 +367,8 @@ module.exports = class BatchBuilder {
 
         // rqData
         this.input.rqTxCompressedDataV2[i] = tx.rqTxCompressedDataV2 || 0;
-        this.input.rqToEthAddr[i] = tx.rqToEthAddr || 0;
-        this.input.rqToBjjAy[i] = tx.rqToBjjAy || 0;
+        this.input.rqToEthAddr[i] = Scalar.fromString(tx.rqToEthAddr || "0", 16);
+        this.input.rqToBjjAy[i] = Scalar.fromString(tx.rqToBjjAy || "0", 16);
 
         this.input.s[i] = tx.s || 0;
         this.input.r8x[i] = tx.r8x || 0;
