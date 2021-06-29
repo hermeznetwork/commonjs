@@ -13,8 +13,8 @@ const LevelDb = require("./level-db");
 class SMTLevelDb {
     /**
      * Initilize SMT levelDb class
-     * @param {String} pathDb - database path 
-     * @param {String} prefix - prefix to store [key - value] 
+     * @param {String} pathDb - database path
+     * @param {String} prefix - prefix to store [key - value]
      */
     constructor(pathDb, prefix) {
         this.db = new LevelDb(pathDb, prefix);
@@ -31,7 +31,7 @@ class SMTLevelDb {
 
     /**
      * Set new root
-     * @param {BigInt} rt - root to store 
+     * @param {BigInt} rt - root to store
      */
     async setRoot(rt) {
         await this.db.insert("smt-root", this._toString(rt));
@@ -51,7 +51,7 @@ class SMTLevelDb {
      * Get from string
      * normally used ti get from database
      * @param {String} - string to parse
-     * @returns {Any} 
+     * @returns {Any}
      */
     _fromString(val) {
         return unstringifyBigInts(JSON.parse(val));
@@ -69,7 +69,7 @@ class SMTLevelDb {
 
     /**
      * Normalize numbers to BigInts
-     * @param {Array} n 
+     * @param {Array} n
      */
     _normalize(n) {
         for (let i = 0; i < n.length; i++) {
@@ -79,7 +79,7 @@ class SMTLevelDb {
 
     /**
      * Get value given its key
-     * @param {BigInt} key 
+     * @param {BigInt} key
      * @returns {Any | undefined} - value, returns undefined if not found
      */
     async get(key) {
@@ -92,12 +92,12 @@ class SMTLevelDb {
 
     /**
      * Get multiples values
-     * @param {Array} keys 
+     * @param {Array} keys
      * @returns {Array} - values
      */
     async multiGet(keys) {
         const promises = [];
-        for (let i=0; i<keys.length; i++) {
+        for (let i = 0; i < keys.length; i++) {
             promises.push(this.get(keys[i]));
         }
         return await Promise.all(promises);
@@ -105,7 +105,7 @@ class SMTLevelDb {
 
     /**
      * Insert multiple [key - value] pairs
-     * @param {Array} inserts - array of [key - value]  
+     * @param {Array} inserts - array of [key - value]
      */
 
     async multiIns(inserts) {
@@ -119,7 +119,7 @@ class SMTLevelDb {
 
     /**
      * Deletes multiple key
-     * @param {Array} dels - keys to delete 
+     * @param {Array} dels - keys to delete
      */
     async multiDel(dels) {
         for (let i = 0; i < dels.length; i++) {

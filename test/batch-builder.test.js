@@ -8,6 +8,7 @@ const RollupDB = require("../index").RollupDB;
 const Constants = require("../index").Constants;
 const computeFee = require("../index").feeTable.computeFee;
 const txUtils = require("../index").txUtils;
+const stateUtils = require("../index").stateUtils;
 const float40 = require("../index").float40;
 const { depositTx } = require("./helpers/test-utils");
 
@@ -41,6 +42,8 @@ describe("Rollup Db - batchbuilder", async function(){
         expect(s1.balance.toString()).to.be.equal(Scalar.e(1000).toString());
         expect(s1.tokenID).to.be.equal(1);
         expect(s1.nonce).to.be.equal(0);
+        expect(s1.exitBalance.toString()).to.be.equal(Scalar.e(0).toString());
+        expect(s1.accumulatedHash.toString()).to.be.equal(Scalar.e(0).toString());
 
         const s2 = await rollupDB.getStateByIdx(257);
         expect(s2.sign).to.be.equal(account2.sign);
@@ -49,6 +52,8 @@ describe("Rollup Db - batchbuilder", async function(){
         expect(s2.balance.toString()).to.be.equal(Scalar.e(2000).toString());
         expect(s2.tokenID).to.be.equal(1);
         expect(s2.nonce).to.be.equal(0);
+        expect(s2.exitBalance.toString()).to.be.equal(Scalar.e(0).toString());
+        expect(s2.accumulatedHash.toString()).to.be.equal(Scalar.e(0).toString());
 
         const bb2 = await rollupDB.buildBatch(maxTx, nLevels, maxL1Tx);
 
@@ -74,14 +79,19 @@ describe("Rollup Db - batchbuilder", async function(){
         expect(s2_1.balance.toString()).to.be.equal(Scalar.e(945).toString());
         expect(s2_1.tokenID).to.be.equal(1);
         expect(s2_1.nonce).to.be.equal(1);
+        expect(s2_1.exitBalance.toString()).to.be.equal(Scalar.e(0).toString());
+        expect(s2_1.accumulatedHash.toString()).to.be.equal(Scalar.e(0).toString());
 
         const s2_2 = await rollupDB.getStateByIdx(257);
+        const newAccHash = stateUtils.computeAccumulatedHash(s2.accumulatedHash, tx, nLevels);
         expect(s2_2.sign).to.be.equal(account2.sign);
         expect(s2_2.ay).to.be.equal(account2.ay);
         expect(s2_2.ethAddr).to.be.equal(account2.ethAddr);
         expect(s2_2.balance.toString()).to.be.equal(Scalar.e(2050).toString());
         expect(s2_2.tokenID).to.be.equal(1);
         expect(s2_2.nonce).to.be.equal(0);
+        expect(s2_2.exitBalance.toString()).to.be.equal(Scalar.e(0).toString());
+        expect(s2_2.accumulatedHash.toString()).to.be.equal(newAccHash.toString());
 
         const s2_3 = await rollupDB.getStateByIdx(258);
         expect(s2_3.sign).to.be.equal(account1.sign);
@@ -90,6 +100,8 @@ describe("Rollup Db - batchbuilder", async function(){
         expect(s2_3.balance.toString()).to.be.equal(Scalar.e(3000).toString());
         expect(s2_3.tokenID).to.be.equal(2);
         expect(s2_3.nonce).to.be.equal(0);
+        expect(s2_3.exitBalance.toString()).to.be.equal(Scalar.e(0).toString());
+        expect(s2_3.accumulatedHash.toString()).to.be.equal(Scalar.e(0).toString());
 
         const s3 = await rollupDB.getStateBySignAy(account1.sign, account1.ay);
         expect(lodash.isEqual(s3[0], s2_1)).to.be.equal(true);
@@ -159,12 +171,16 @@ describe("Rollup Db - batchbuilder", async function(){
         await rollupDB.consolidate(bb2);
 
         const s1 = await rollupDB.getStateByIdx(256);
+        expect(s1.accumulatedHash.toString()).to.be.equal(Scalar.e(0).toString());
         expect(s1.balance.toString()).to.be.equal(Scalar.e(945).toString());
 
         const s2 = await rollupDB.getStateByIdx(257);
+        expect(s2.accumulatedHash.toString()).to.be.equal(Scalar.e(0).toString());
         expect(s2.balance.toString()).to.be.equal(Scalar.e(2000).toString());
 
         const s3 = await rollupDB.getStateByIdx(258);
+        const newAccHash = stateUtils.computeAccumulatedHash(s2.accumulatedHash, tx, nLevels);
+        expect(s3.accumulatedHash.toString()).to.be.equal(newAccHash.toString());
         expect(s3.balance.toString()).to.be.equal(Scalar.e(3050).toString());
 
         // check L2 tx data availability
@@ -216,12 +232,16 @@ describe("Rollup Db - batchbuilder", async function(){
         await rollupDB.consolidate(bb2);
 
         const s1 = await rollupDB.getStateByIdx(256);
+        expect(s1.accumulatedHash.toString()).to.be.equal(Scalar.e(0).toString());
         expect(s1.balance.toString()).to.be.equal(Scalar.e(945).toString());
 
         const s2 = await rollupDB.getStateByIdx(257);
+        expect(s2.accumulatedHash.toString()).to.be.equal(Scalar.e(0).toString());
         expect(s2.balance.toString()).to.be.equal(Scalar.e(2000).toString());
 
         const s3 = await rollupDB.getStateByIdx(258);
+        const newAccHash = stateUtils.computeAccumulatedHash(s2.accumulatedHash, tx, nLevels);
+        expect(s3.accumulatedHash.toString()).to.be.equal(newAccHash.toString());
         expect(s3.balance.toString()).to.be.equal(Scalar.e(3050).toString());
 
         // check L2 tx data availability
@@ -271,14 +291,18 @@ describe("Rollup Db - batchbuilder", async function(){
         expect(s1.balance.toString()).to.be.equal(Scalar.e(945).toString());
         expect(s1.tokenID).to.be.equal(1);
         expect(s1.nonce).to.be.equal(1);
+        expect(s1.accumulatedHash.toString()).to.be.equal(Scalar.e(0).toString());
+        expect(s1.exitBalance.toString()).to.be.equal(Scalar.e(50).toString());
 
-        const s1_exit = await rollupDB.getExitTreeInfo(256, 2);
+        const s1_exit = await rollupDB.getExitInfo(256, 2);
         expect(s1_exit.state.sign).to.be.equal(account1.sign);
         expect(s1_exit.state.ay).to.be.equal(account1.ay);
         expect(s1_exit.state.ethAddr).to.be.equal(account1.ethAddr);
-        expect(s1_exit.state.balance.toString()).to.be.equal(Scalar.e(50).toString());
+        expect(s1_exit.state.balance.toString()).to.be.equal(Scalar.e(945).toString());
         expect(s1_exit.state.tokenID).to.be.equal(1);
-        expect(s1_exit.state.nonce).to.be.equal(0);
+        expect(s1_exit.state.nonce).to.be.equal(1);
+        expect(s1_exit.state.accumulatedHash.toString()).to.be.equal(Scalar.e(0).toString());
+        expect(s1_exit.state.exitBalance.toString()).to.be.equal(Scalar.e(50).toString());
 
         // check L2 tx data availability
         const L2TxData = await bb2._L2TxsData();
@@ -288,15 +312,6 @@ describe("Rollup Db - batchbuilder", async function(){
         expect(Scalar.e(L2TxDataDecoded.amountF).toString()).to.be.equal(float40.fix2Float(tx.amount).toString());
         expect(L2TxDataDecoded.fromIdx).to.be.equal(tx.fromIdx);
         expect(L2TxDataDecoded.toIdx).to.be.equal(tx.toIdx);
-
-        // check exit root
-        const exitRoot = await rollupDB.getExitRoot(bb2.batchNumber);
-        const oldExitRoot = await rollupDB.getExitRoot(bb2.batchNumber - 1); // empty exit root
-        const exitRootNonExisting = await rollupDB.getExitRoot(bb2.batchNumber + 1); // non-existing
-
-        expect(exitRoot.toString()).to.be.equal(bb2.exitTree.root.toString());
-        expect(oldExitRoot.toString()).to.be.equal(Scalar.e(0).toString());
-        expect(exitRootNonExisting).to.be.equal(null);
     });
 
     it("Should process L2 exit with 0 amount", async () => {
@@ -332,9 +347,11 @@ describe("Rollup Db - batchbuilder", async function(){
         const s1 = await rollupDB.getStateByIdx(256);
         expect(s1.balance.toString()).to.be.equal(Scalar.e(1000).toString());
 
-        // check exit root is 0
-        const exitRoot = await rollupDB.getExitRoot(bb2.batchNumber);
-        expect(exitRoot.toString()).to.be.equal(Scalar.e(0).toString());
+        // check exit info
+        const s1_exit = await rollupDB.getExitInfo(256, 2);
+        expect(s1_exit.state.balance.toString()).to.be.equal(Scalar.e(1000).toString());
+        expect(s1_exit.state.exitBalance.toString()).to.be.equal(Scalar.e(0).toString());
+        expect(s1_exit.state.nonce.toString()).to.be.equal(Scalar.e(1).toString());
     });
 
     it("Should process L1 force exit with 0 amount", async () => {
@@ -372,9 +389,11 @@ describe("Rollup Db - batchbuilder", async function(){
         const s1 = await rollupDB.getStateByIdx(256);
         expect(s1.balance.toString()).to.be.equal(Scalar.e(1000).toString());
 
-        // check exit root is 0
-        const exitRoot = await rollupDB.getExitRoot(bb2.batchNumber);
-        expect(exitRoot.toString()).to.be.equal(Scalar.e(0).toString());
+        // check exit info
+        const s1_exit = await rollupDB.getExitInfo(256, 2);
+        expect(s1_exit.state.balance.toString()).to.be.equal(Scalar.e(1000).toString());
+        expect(s1_exit.state.exitBalance.toString()).to.be.equal(Scalar.e(0).toString());
+        expect(s1_exit.state.nonce.toString()).to.be.equal(Scalar.e(0).toString());
     });
 
     it("Should process L2 transfer with 0 amount", async () => {
@@ -411,9 +430,11 @@ describe("Rollup Db - batchbuilder", async function(){
 
         // check balances
         const s1 = await rollupDB.getStateByIdx(256);
+        expect(s1.exitBalance.toString()).to.be.equal(Scalar.e(0).toString());
         expect(s1.balance.toString()).to.be.equal(Scalar.e(945).toString());
 
         const s2 = await rollupDB.getStateByIdx(257);
+        expect(s2.exitBalance.toString()).to.be.equal(Scalar.e(0).toString());
         expect(s2.balance.toString()).to.be.equal(Scalar.e(1050).toString());
 
         const bb3 = await rollupDB.buildBatch(maxTx, nLevels, maxL1Tx);
@@ -435,9 +456,14 @@ describe("Rollup Db - batchbuilder", async function(){
 
         // check balances
         const s1_2 = await rollupDB.getStateByIdx(256);
+        expect(s1_2.accumulatedHash.toString()).to.be.equal(Scalar.e(0).toString());
+        expect(s1_2.exitBalance.toString()).to.be.equal(Scalar.e(0).toString());
         expect(s1_2.balance.toString()).to.be.equal(Scalar.e(945).toString());
 
         const s2_2 = await rollupDB.getStateByIdx(257);
+        const newAccHash = stateUtils.computeAccumulatedHash(s2.accumulatedHash, tx2, nLevels);
+        expect(s2_2.accumulatedHash.toString()).to.be.equal(newAccHash.toString());
+        expect(s2_2.exitBalance.toString()).to.be.equal(Scalar.e(0).toString());
         expect(s2_2.balance.toString()).to.be.equal(Scalar.e(1050).toString());
     });
 
@@ -477,8 +503,13 @@ describe("Rollup Db - batchbuilder", async function(){
         // check balances
         const s1 = await rollupDB.getStateByIdx(256);
         expect(s1.balance.toString()).to.be.equal(Scalar.e(950).toString());
+        expect(s1.accumulatedHash.toString()).to.be.equal(Scalar.e(0).toString());
+        expect(s1.exitBalance.toString()).to.be.equal(Scalar.e(0).toString());
 
         const s2 = await rollupDB.getStateByIdx(257);
+        let newAccHash = stateUtils.computeAccumulatedHash(Scalar.e(0), tx, nLevels);
+        expect(s2.accumulatedHash.toString()).to.be.equal(newAccHash.toString());
+        expect(s2.exitBalance.toString()).to.be.equal(Scalar.e(0).toString());
         expect(s2.balance.toString()).to.be.equal(Scalar.e(1050).toString());
 
         const bb3 = await rollupDB.buildBatch(maxTx, nLevels, maxL1Tx);
@@ -502,9 +533,14 @@ describe("Rollup Db - batchbuilder", async function(){
         // check balances
         const s1_2 = await rollupDB.getStateByIdx(256);
         expect(s1_2.balance.toString()).to.be.equal(Scalar.e(950).toString());
+        expect(s1_2.accumulatedHash.toString()).to.be.equal(Scalar.e(0).toString());
+        expect(s1_2.exitBalance.toString()).to.be.equal(Scalar.e(0).toString());
 
         const s2_2 = await rollupDB.getStateByIdx(257);
+        newAccHash = stateUtils.computeAccumulatedHash(s2.accumulatedHash, tx2, nLevels);
         expect(s2_2.balance.toString()).to.be.equal(Scalar.e(1050).toString());
+        expect(s2_2.accumulatedHash.toString()).to.be.equal(newAccHash.toString());
+        expect(s2_2.exitBalance.toString()).to.be.equal(Scalar.e(0).toString());
     });
 
     it("Should check fee accumulated, fee plan tokens, fee idxs & pay fees on L2", async () => {
@@ -583,6 +619,8 @@ describe("Rollup Db - batchbuilder", async function(){
         expect(stateFees1.balance.toString()).to.be.equal(Scalar.e(feeTx1).toString());
         expect(stateFees1.tokenID).to.be.equal(1);
         expect(stateFees1.nonce).to.be.equal(0);
+        expect(stateFees1.exitBalance.toString()).to.be.equal(Scalar.e(0).toString());
+        expect(stateFees1.accumulatedHash.toString()).to.be.equal(Scalar.e(0).toString());
 
         // Token ID1
         const indexToken2 = feePlanCoins.indexOf(tx2.tokenID);
@@ -595,6 +633,8 @@ describe("Rollup Db - batchbuilder", async function(){
         expect(stateFees2.balance.toString()).to.be.equal(Scalar.e(feeTx2).toString());
         expect(stateFees2.tokenID).to.be.equal(2);
         expect(stateFees2.nonce).to.be.equal(0);
+        expect(stateFees1.exitBalance.toString()).to.be.equal(Scalar.e(0).toString());
+        expect(stateFees1.accumulatedHash.toString()).to.be.equal(Scalar.e(0).toString());
     });
 
     it("Should check error L2 tx with loadAmount", async () => {
@@ -669,6 +709,43 @@ describe("Rollup Db - batchbuilder", async function(){
             expect(true).to.be.equal(false);
         } catch (error) {
             expect(error.message.includes("trying to send to a non existing account")).to.be.equal(true);
+        }
+    });
+
+    it("Should check error L2 exit fromIdx does not exist", async () => {
+        // Start a new state
+        const db = new SMTMemDB();
+        const rollupDB = await RollupDB(db);
+        const bb = await rollupDB.buildBatch(maxTx, nLevels, maxL1Tx);
+
+        const account1 = new Account(1);
+        const account2 = new Account(2);
+
+        depositTx(bb, account1, 0, 1000);
+        depositTx(bb, account2, 1, 2000);
+
+        await bb.build();
+        await rollupDB.consolidate(bb);
+
+        const bb2 = await rollupDB.buildBatch(maxTx, nLevels, maxL1Tx);
+
+        const tx = {
+            fromIdx: 258,
+            toIdx: Constants.exitIdx,
+            tokenID: 0,
+            amount: 50,
+            nonce: 0,
+            userFee: 126,
+        };
+
+        account1.signTx(tx);
+        bb2.addTx(tx);
+
+        try {
+            await bb2.build();
+            expect(true).to.be.equal(false);
+        } catch (error) {
+            expect(error.message.includes("FromIdx does not exist")).to.be.equal(true);
         }
     });
 
@@ -830,7 +907,7 @@ describe("Rollup Db - batchbuilder", async function(){
         expect(resFeeData).to.be.equal(batchFeeData.toString());
 
         // input hash
-        const resInputHash = "12514623173775018362376319619542083816299433114758195525580469850532085559598";
+        const resInputHash = "19377456725856121152838237812130123789886310451262992986461154440516302272162";
 
         const batchInputHash = await bb.getHashInputs();
         expect(resInputHash).to.be.equal(batchInputHash.toString());
@@ -859,7 +936,7 @@ describe("Rollup Db - batchbuilder", async function(){
         expect(batchFeeData.toString()).to.be.equal(resFeeData);
 
         // input hash
-        const resInputHash = "9089028054588104462886776521837774802942784059202308502651705027859889271172";
+        const resInputHash = "20754921306922570106105324123418747433017277729861541401529941815324066219927";
 
         const batchInputHash = await bb.getHashInputs();
         expect(resInputHash).to.be.equal(batchInputHash.toString());

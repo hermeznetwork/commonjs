@@ -24,6 +24,9 @@ module.exports = {
         "semi": [
             "error",
             "always"
+        ],
+        "space-infix-ops": [
+            "error"
         ]
     }
 };

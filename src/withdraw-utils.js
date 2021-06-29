@@ -2,8 +2,8 @@ const utils = require("./utils");
 const Constants = require("./constants");
 
 /**
- * @param {Object} inputs - Object containing all withdraw inputs 
- * @return {Scalar} hash global inputs with sha256 % rField 
+ * @param {Object} inputs - Object containing all withdraw inputs
+ * @return {Scalar} hash global inputs with sha256 % rField
  */
 function hashInputsWithdraw(inputs){
     const rootExitB = 256;
@@ -32,7 +32,7 @@ function hashInputsWithdraw(inputs){
     // build final inputs string
     const finalStr = strRootExit.concat(strEthAddr).concat(strTokenID).concat(strBalance)
         .concat(strIdx);
-    
+
     return utils.sha256Snark(finalStr);
 }
 

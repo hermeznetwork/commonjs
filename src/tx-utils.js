@@ -18,16 +18,16 @@ function encodeL1TxFull(tx) {
     const tokenIDB = 32;
     const idxB = 48; // MAX_NLEVELS
 
-    const L1TxFullB = fromEthAddrB + fromBjjCompressedB + 2*idxB + tokenIDB + 2*f40B;
+    const L1TxFullB = fromEthAddrB + fromBjjCompressedB + 2 * idxB + tokenIDB + 2 * f40B;
 
     let res = Scalar.e(0);
     res = Scalar.add(res, tx.toIdx || 0);
     res = Scalar.add(res, Scalar.shl(tx.tokenID || 0, idxB));
     res = Scalar.add(res, Scalar.shl(tx.amountF || 0, idxB + tokenIDB));
     res = Scalar.add(res, Scalar.shl(tx.loadAmountF || 0, idxB + tokenIDB + f40B));
-    res = Scalar.add(res, Scalar.shl(tx.fromIdx || 0, idxB + tokenIDB + 2*f40B));
-    res = Scalar.add(res, Scalar.shl(Scalar.fromString(tx.fromBjjCompressed || "0", 16), 2*idxB + tokenIDB + 2*f40B));
-    res = Scalar.add(res, Scalar.shl(Scalar.fromString(tx.fromEthAddr || "0", 16), fromBjjCompressedB + 2*idxB + tokenIDB + 2*f40B));
+    res = Scalar.add(res, Scalar.shl(tx.fromIdx || 0, idxB + tokenIDB + 2 * f40B));
+    res = Scalar.add(res, Scalar.shl(Scalar.fromString(tx.fromBjjCompressed || "0", 16), 2 * idxB + tokenIDB + 2 * f40B));
+    res = Scalar.add(res, Scalar.shl(Scalar.fromString(tx.fromEthAddr || "0", 16), fromBjjCompressedB + 2 * idxB + tokenIDB + 2 * f40B));
 
     return utils.padZeros(res.toString("16"), L1TxFullB / 4);
 }
@@ -50,10 +50,10 @@ function decodeL1TxFull(l1TxEncoded) {
     l1tx.tokenID = Scalar.toNumber(utils.extract(l1TxScalar, idxB, tokenIDB));
     l1tx.amountF = Scalar.toNumber(utils.extract(l1TxScalar, idxB + tokenIDB , f40B));
     l1tx.loadAmountF = Scalar.toNumber(utils.extract(l1TxScalar, idxB + tokenIDB + f40B, f40B));
-    l1tx.fromIdx = Scalar.toNumber(utils.extract(l1TxScalar, idxB + tokenIDB + 2*f40B, idxB));
-    const fromBjjCompressed =(utils.extract(l1TxScalar, 2*idxB + tokenIDB + 2*f40B, fromBjjCompressedB)).toString(16);
+    l1tx.fromIdx = Scalar.toNumber(utils.extract(l1TxScalar, idxB + tokenIDB + 2 * f40B, idxB));
+    const fromBjjCompressed = (utils.extract(l1TxScalar, 2 * idxB + tokenIDB + 2 * f40B, fromBjjCompressedB)).toString(16);
     l1tx.fromBjjCompressed = `0x${utils.padZeros(fromBjjCompressed.toString("16"), fromBjjCompressedB / 4)}`;
-    const fromEthAddr = (utils.extract(l1TxScalar, fromBjjCompressedB + 2*idxB + tokenIDB + 2*f40B, fromEthAddrB)).toString(16);
+    const fromEthAddr = (utils.extract(l1TxScalar, fromBjjCompressedB + 2 * idxB + tokenIDB + 2 * f40B, fromEthAddrB)).toString(16);
     l1tx.fromEthAddr = `0x${utils.padZeros(fromEthAddr.toString("16"), fromEthAddrB / 4)}`;
     l1tx.onChain = true;
 
@@ -263,7 +263,7 @@ function encodeL1Tx(tx, nLevels){
     const f40B = 40;
     const userFeeB = 8;
 
-    const L1TxB = 2*idxB + f40B + userFeeB;
+    const L1TxB = 2 * idxB + f40B + userFeeB;
 
     let res = Scalar.e(0);
     res = Scalar.add(res, Scalar.e(0)); // fee for L1 transaction is 0
@@ -308,7 +308,7 @@ function encodeL2Tx(tx, nLevels){
     const f40B = 40;
     const userFeeB = 8;
 
-    const L2TxB = 2*idxB + f40B + userFeeB;
+    const L2TxB = 2 * idxB + f40B + userFeeB;
 
     let finalToIdx = tx.toIdx;
     if (tx.toIdx == Constants.nullIdx){

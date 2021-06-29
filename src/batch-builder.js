@@ -26,8 +26,6 @@ module.exports = class BatchBuilder {
         this.onChainTxs = [];
         this.dbState = new SMTTmpDb(rollupDB.db);
         this.stateTree = new SMT(this.dbState, root);
-        this.dbExit = new SMTTmpDb(rollupDB.db);
-        this.exitTree = new SMT(this.dbExit, Scalar.e(0));
         this.totalFeeTransactions = nFeeTx;
         this.feePlanTokens = Array(this.totalFeeTransactions).fill(0);
         this.feeTotals = Array(this.totalFeeTransactions).fill(0);
@@ -55,14 +53,14 @@ module.exports = class BatchBuilder {
         this.feeB = 8;
         this.numBatchB = 32;
 
-        this.L1TxFullB = this.fromEthAddrB + this.fromBjjCompressedB + 2*this.maxIdxB + this.tokenIDB + 2*this.f40B;
-        this.L1L2TxDataB = 2*this.idxB + this.f40B + this.feeB;
+        this.L1TxFullB = this.fromEthAddrB + this.fromBjjCompressedB + 2 * this.maxIdxB + this.tokenIDB + 2 * this.f40B;
+        this.L1L2TxDataB = 2 * this.idxB + this.f40B + this.feeB;
 
         const inputL1TxsFullB = this.maxL1Tx * this.L1TxFullB;
         const inputTxsDataB = this.maxNTx * this.L1L2TxDataB;
         const inputFeeTxsB = this.totalFeeTransactions * this.idxB;
 
-        this.sha256InputsB = 2*this.idxB + 3*this.rootB + this.chainIDB + inputL1TxsFullB + inputTxsDataB + inputFeeTxsB;
+        this.sha256InputsB = 2 * this.idxB + 2 * this.rootB + this.chainIDB + inputL1TxsFullB + inputTxsDataB + inputFeeTxsB;
     }
 
     /**
@@ -121,8 +119,10 @@ module.exports = class BatchBuilder {
         this.input.nonce1[i] = 0;
         this.input.tokenID1[i] = 0;
         this.input.ethAddr1[i] = 0;
+        this.input.exitBalance1[i] = 0;
+        this.input.accumulatedHash1[i] = 0;
         this.input.siblings1[i] = [];
-        for (let j=0; j<this.nLevels+1; j++) {
+        for (let j = 0; j < this.nLevels + 1; j++) {
             this.input.siblings1[i][j] = 0;
         }
         this.input.isOld0_1[i] = 0;
@@ -133,27 +133,24 @@ module.exports = class BatchBuilder {
         this.input.sign2[i] = 0;
         this.input.ay2[i] = 0;
         this.input.balance2[i] = 0;
-        this.input.newExit[i] = 0;
         this.input.nonce2[i] = 0;
         this.input.tokenID2[i] = 0;
         this.input.ethAddr2[i] = 0;
+        this.input.exitBalance2[i] = 0;
+        this.input.accumulatedHash2[i] = 0;
         this.input.siblings2[i] = [];
-        for (let j = 0; j < this.nLevels+1; j++) {
+        for (let j = 0; j < this.nLevels + 1; j++) {
             this.input.siblings2[i][j] = 0;
         }
-        this.input.isOld0_2[i] = 0;
-        this.input.oldKey2[i] = 0;
-        this.input.oldValue2[i] = 0;
 
-        if (i < this.maxNTx-1) {
+        if (i < this.maxNTx - 1) {
             this.input.imOnChain[i] = 0;
             this.input.imOutIdx[i] = this.finalIdx;
 
             this.input.imStateRoot[i] = this.stateTree.root;
-            this.input.imExitRoot[i] = this.exitTree.root;
             this.input.imAccFeeOut[i] = [];
             for (let j = 0; j < this.totalFeeTransactions; j++) {
-                this.input.imAccFeeOut[i][j] = (i == 0) ? 0: this.input.imAccFeeOut[i-1][j];
+                this.input.imAccFeeOut[i][j] = (i == 0) ? 0 : this.input.imAccFeeOut[i - 1][j];
             }
         }
     }
@@ -184,13 +181,9 @@ module.exports = class BatchBuilder {
         tx.amount = amount;
 
         // Get ay and sign from bjjCompressed
-        // let fromAx = 0;
         let fromAy = 0;
         let fromSign = 0;
         if (tx.fromBjjCompressed != undefined && Scalar.eq(0, tx.fromIdx)){
-            // const bjjCompresedBuf = utilsScalar.leInt2Buff(Scalar.fromString(tx.fromBjjCompressed || "0", 16));
-            // const pointBjj = babyJub.unpackPoint(bjjCompresedBuf);
-            // fromAx = pointBjj[0].toString(16);
             const scalarFromBjjCompressed = Scalar.fromString(tx.fromBjjCompressed || "0", 16);
             fromAy = utils.extract(scalarFromBjjCompressed, 0, 254).toString(16);
             fromSign = utils.extract(scalarFromBjjCompressed, 255, 1);
@@ -212,7 +205,7 @@ module.exports = class BatchBuilder {
         let oldState1;
         let oldState2;
         let op1 = "NOP";
-        let op2 = "INSERT";
+        let op2 = "UPDATE";
         let isExit;
         let newAccount = 0;
 
@@ -223,15 +216,19 @@ module.exports = class BatchBuilder {
             oldState1 = stateUtils.array2State(await this.dbState.get(foundValueId));
             op1 = "UPDATE";
         } else {
-            // INSERT
-            // tx needs (fromAy, fromSign) get from BjjCompressed
+            if (tx.fromIdx !== Constants.nullIdx){
+                throw new Error("FromIdx does not exist");
+            }
+
             oldState1 = {
                 balance: Scalar.e(0),
                 tokenID: tx.tokenID,
                 nonce: 0,
                 sign: fromSign,
                 ay: fromAy,
-                ethAddr: tx.fromEthAddr
+                ethAddr: tx.fromEthAddr,
+                exitBalance: Scalar.e(0),
+                accumulatedHash: Scalar.e(0)
             };
             op1 = "INSERT";
             newAccount = 1;
@@ -239,7 +236,6 @@ module.exports = class BatchBuilder {
 
         // To leaf
         let resFind2;
-        let resFindExit;
         const finalToIdx = (tx.toIdx == Constants.nullIdx) ? (tx.auxToIdx || 0) : tx.toIdx;
         if (finalToIdx > Constants.firstIdx) {
             resFind2 = await this.stateTree.find(finalToIdx);
@@ -251,23 +247,13 @@ module.exports = class BatchBuilder {
             isExit = false;
             op2 = "UPDATE";
         } else if (tx.toIdx == Constants.exitIdx) {
-            resFindExit = await this.exitTree.find(tx.fromIdx);
-            if (resFindExit.found) {
-                const foundValueId = poseidonHash([resFindExit.foundValue, tx.fromIdx]);
-                oldState2 = stateUtils.array2State(await this.dbExit.get(foundValueId));
-                op2 = "UPDATE";
-            } else {
-                oldState2 = {
-                    balance: Scalar.e(0),
-                    tokenID: oldState1.tokenID,
-                    nonce: 0,
-                    sign: oldState1.sign,
-                    ay: oldState1.ay,
-                    ethAddr: oldState1.ethAddr
-                };
-                op2 = "INSERT";
+            resFind2 = await this.stateTree.find(tx.fromIdx);
+            if (!resFind2.found) {
+                throw new Error("FromIdx does not exist");
             }
+            oldState2 = Object.assign({}, oldState1);
             isExit = true;
+            op2 = "UPDATE";
         } else {
             op2 = "NOP";
         }
@@ -354,7 +340,6 @@ module.exports = class BatchBuilder {
         this.input.txCompressedDataV2[i] = tx.onChain ?  0 : txUtils.buildTxCompressedDataV2(tx);
         this.input.toEthAddr[i] = Scalar.fromString(tx.toEthAddr || "0", 16);
         if (tx.toBjjSign !== undefined && tx.toBjjAy !== undefined){
-            // this.input.toBjjAx[i]= Scalar.fromString(stateUtils.getAx(tx.toBjjSign, tx.toBjjAy), 16);
             this.input.toBjjAy[i] = Scalar.fromString(tx.toBjjAy, 16);
         } else {
             // this.input.toBjjAx[i]= 0;
@@ -374,7 +359,8 @@ module.exports = class BatchBuilder {
         this.input.r8x[i] = tx.r8x || 0;
         this.input.r8y[i] = tx.r8y || 0;
         this.input.loadAmountF[i] = tx.loadAmountF || 0;
-        this.input.fromEthAddr[i] = Scalar.fromString(tx.fromEthAddr || "0", 16); //Scalar.fromString(oldState1.ethAddr, 16);
+        this.input.fromEthAddr[i] = Scalar.fromString(tx.fromEthAddr || "0", 16);
+
         // Input bits BjjCompressed
         this.input.fromBjjCompressed[i] = [];
         const fromBjjCompressedScalar = Scalar.fromString(tx.fromBjjCompressed || "0", 16);
@@ -384,6 +370,7 @@ module.exports = class BatchBuilder {
             this.input.fromBjjCompressed[i][j] = bjjCompressedBits[j];
         }
 
+        // compute new states
         const newState1 = Object.assign({}, oldState1);
         newState1.balance = Scalar.sub(Scalar.sub(Scalar.add(oldState1.balance, effectiveLoadAmount), effectiveAmount), fee2Charge);
         if (!tx.onChain) {
@@ -394,37 +381,44 @@ module.exports = class BatchBuilder {
             this._accumulateFees(tx.tokenID, fee2Charge);
         }
 
-        if (tx.fromIdx === finalToIdx)
+        if (tx.fromIdx === finalToIdx || isExit)
             oldState2 = Object.assign({}, newState1);
 
         let newState2;
         if (op2 != "NOP"){
             newState2 = Object.assign({}, oldState2);
-            newState2.balance = Scalar.add(oldState2.balance, effectiveAmount);
+
+            if (isExit){
+                newState2.exitBalance = Scalar.add(oldState2.exitBalance, effectiveAmount);
+            } else {
+                newState2.balance = Scalar.add(oldState2.balance, effectiveAmount);
+                newState2.accumulatedHash = stateUtils.computeAccumulatedHash(oldState2.accumulatedHash, tx, this.nLevels);
+            }
         }
 
-        if (op1=="INSERT") {
-
+        if (op1 == "INSERT") {
             this.finalIdx += 1;
 
             const newValue = stateUtils.hashState(newState1);
 
             const res = await this.stateTree.insert(tx.auxFromIdx, newValue);
             let siblings = res.siblings;
-            while (siblings.length<this.nLevels+1) siblings.push(Scalar.e(0));
+            while (siblings.length < this.nLevels + 1) siblings.push(Scalar.e(0));
 
             // State 1
             // That first 4 parameters do not matter in the circuit, since it gets the information from the TxData
-            this.input.sign1[i]= 0x1234;      // It should not matter
-            this.input.ay1[i]= 0x1234;      // It should not matter
-            this.input.balance1[i]= 0x1234;  // It should not matter
-            this.input.nonce1[i]= 0x1234;   // It should not matter
-            this.input.tokenID1[i]= tx.tokenID;   // Must match with tokenID transaction
-            this.input.ethAddr1[i]= this.input.fromEthAddr[i]; // In the onChain TX this must match
+            this.input.sign1[i] = 0x1234;      // It should not matter
+            this.input.ay1[i] = 0x1234;      // It should not matter
+            this.input.balance1[i] = 0x1234;  // It should not matter
+            this.input.nonce1[i] = 0x1234;   // It should not matter
+            this.input.tokenID1[i] = tx.tokenID;   // Must match with tokenID transaction
+            this.input.ethAddr1[i] = this.input.fromEthAddr[i]; // In the onChain TX this must match
+            this.input.exitBalance1[i] = 0x1234;   // It should not matter
+            this.input.accumulatedHash1[i] = 0x1234;   // It should not matter
             this.input.siblings1[i] = siblings;
-            this.input.isOld0_1[i]= res.isOld0 ? 1 : 0;
-            this.input.oldKey1[i]= res.isOld0 ? 0 : res.oldKey;
-            this.input.oldValue1[i]= res.isOld0 ? 0 : res.oldValue;
+            this.input.isOld0_1[i] = res.isOld0 ? 1 : 0;
+            this.input.oldKey1[i] = res.isOld0 ? 0 : res.oldKey;
+            this.input.oldValue1[i] = res.isOld0 ? 0 : res.oldValue;
 
             // Database AxAy
             const keyAxAy = Scalar.add( Scalar.add(Constants.DB_AxAy, fromSign), Scalar.fromString(fromAy, 16));
@@ -530,21 +524,23 @@ module.exports = class BatchBuilder {
 
             const res = await this.stateTree.update(tx.fromIdx, newValue);
             let siblings = res.siblings;
-            while (siblings.length<this.nLevels+1) siblings.push(Scalar.e(0));
+            while (siblings.length < this.nLevels + 1) siblings.push(Scalar.e(0));
 
             // State 1
-            //It should not matter what the Tx have, because we get the input from the oldState
-            this.input.sign1[i]= Scalar.e(oldState1.sign);
-            this.input.ay1[i]= Scalar.fromString(oldState1.ay, 16);
-            this.input.tokenID1[i]= Scalar.e(oldState1.tokenID);
-            this.input.balance1[i]= oldState1.balance;
-            this.input.nonce1[i]= oldState1.nonce;
-            this.input.ethAddr1[i]= Scalar.fromString(oldState1.ethAddr, 16);
+            // It should not matter what the Tx have, because we get the input from the oldState
+            this.input.sign1[i] = Scalar.e(oldState1.sign);
+            this.input.ay1[i] = Scalar.fromString(oldState1.ay, 16);
+            this.input.tokenID1[i] = Scalar.e(oldState1.tokenID);
+            this.input.balance1[i] = oldState1.balance;
+            this.input.nonce1[i] = oldState1.nonce;
+            this.input.ethAddr1[i] = Scalar.fromString(oldState1.ethAddr, 16);
+            this.input.exitBalance1[i] = Scalar.e(oldState1.exitBalance);
+            this.input.accumulatedHash1[i] = Scalar.e(oldState1.accumulatedHash);
 
             this.input.siblings1[i] = siblings;
-            this.input.isOld0_1[i]= 0;
-            this.input.oldKey1[i]= 0x1234;      // It should not matter
-            this.input.oldValue1[i]= 0x1234;    // It should not matter
+            this.input.isOld0_1[i] = 0;
+            this.input.oldKey1[i] = 0x1234;      // It should not matter
+            this.input.oldValue1[i] = 0x1234;    // It should not matter
 
             // get array of states saved by batch
             const lastIdStates = await this.dbState.get(Scalar.add(Constants.DB_Idx, tx.fromIdx));
@@ -567,148 +563,68 @@ module.exports = class BatchBuilder {
             ]);
         }
 
-        if (op2=="INSERT") {
+        let updateToIdx;
+        if (isExit){
+            updateToIdx = tx.fromIdx;
+        } else {
+            updateToIdx = finalToIdx;
+        }
+
+        if (op2 == "UPDATE") {
+            const newValue = stateUtils.hashState(newState2);
+            const res = await this.stateTree.update(updateToIdx, newValue);
+            let siblings = res.siblings;
+            while (siblings.length < this.nLevels + 1) siblings.push(Scalar.e(0));
+
             // State 2
-            this.input.sign2[i] = 0x1234;    // It should not matter
-            this.input.ay2[i] = 0x1234;      // It should not matter
-            this.input.balance2[i] = 0x1234; // It should not matter
-            this.input.nonce2[i] = 0x1234;   // It should not matter
-            this.input.tokenID2[i] = 0x1234; // It should not matter
-            this.input.ethAddr2[i] = 0x1234; // It should not matter
+            // It should not matter what the Tx have, because we get the input from the oldState
+            this.input.sign2[i] = Scalar.e(oldState2.sign);
+            this.input.ay2[i] = Scalar.fromString(oldState2.ay, 16);
+            this.input.balance2[i] = oldState2.balance;
+            this.input.nonce2[i] = oldState2.nonce;
+            this.input.tokenID2[i] = Scalar.e(oldState2.tokenID);
+            this.input.ethAddr2[i] = Scalar.fromString(oldState2.ethAddr, 16);
+            this.input.exitBalance2[i] = Scalar.e(oldState2.exitBalance);
+            this.input.accumulatedHash2[i] = Scalar.e(oldState2.accumulatedHash);
+            this.input.siblings2[i] = siblings;
 
-            // if original amount is 0, leaf is not inserted in the exit tree
-            if (!Scalar.eq(tx.amount, 0)){
-                const newValue = stateUtils.hashState(newState2);
+            // get array of states saved by batch
+            const lastIdStates = await this.dbState.get(Scalar.add(Constants.DB_Idx, updateToIdx));
+            // add last batch number
+            let valStatesId;
+            if (!lastIdStates) valStatesId = [];
+            else valStatesId = [...lastIdStates];
+            if (!valStatesId.includes(this.currentNumBatch)) valStatesId.push(this.currentNumBatch);
 
-                const res = await this.exitTree.insert(tx.fromIdx, newValue);
-                if (res.found) {
-                    throw new Error("Invalid Exit account");
-                }
-                let siblings = res.siblings;
-                while (siblings.length<this.nLevels+1) siblings.push(Scalar.e(0));
+            // new state for idx
+            const newValueId = poseidonHash([newValue, updateToIdx]);
 
-                this.input.newExit[i] = 1;   // must be 1 to signal new exit leaf
-                this.input.siblings2[i] = siblings;
-                this.input.isOld0_2[i] = res.isOld0 ? 1 : 0;
-                this.input.oldKey2[i] = res.isOld0 ? 0 : res.oldKey;
-                this.input.oldValue2[i] = res.isOld0 ? 0 : res.oldValue;
+            // new entry according idx and batchNumber
+            const keyIdBatch = poseidonHash([updateToIdx, this.currentNumBatch]);
 
-                const newValueId = poseidonHash([newValue, tx.fromIdx]);
-                await this.dbExit.multiIns([[newValueId, stateUtils.state2Array(newState2)]]);
-            } else {
-                this.input.newExit[i] = tx.onChain ? 0x1234 : 1;
-                this.input.siblings2[i] = [];
-                for (let j=0; j<this.nLevels+1; j++) {
-                    this.input.siblings2[i][j]= 0;
-                }
-                this.input.isOld0_2[i] = 0;
-                this.input.oldKey2[i] = 0;
-                this.input.oldValue2[i] = 0;
-            }
-
-        } else if (op2=="UPDATE") {
-            if (isExit) {
-                const newValue = stateUtils.hashState(newState2);
-
-                const res = await this.exitTree.update(tx.fromIdx, newValue);
-                let siblings = res.siblings;
-                while (siblings.length<this.nLevels+1) siblings.push(Scalar.e(0));
-
-                this.input.siblings2[i] = siblings;
-                this.input.isOld0_2[i]= 0;
-                this.input.oldKey2[i]= 0x1234;      // It should not matter
-                this.input.oldValue2[i]= 0x1234;    // It should not matter
-
-                if (!Scalar.eq(tx.amount, 0)){
-                    // State 2
-                    //It should not matter what the Tx have, because we get the input from the oldState
-                    this.input.sign2[i]= Scalar.e(oldState2.sign);
-                    this.input.ay2[i]= Scalar.fromString(oldState2.ay, 16);
-                    this.input.balance2[i]= oldState2.balance;
-                    this.input.newExit[i]= Scalar.e(0);
-                    this.input.nonce2[i]= oldState2.nonce;
-                    this.input.tokenID2[i]= Scalar.e(oldState2.tokenID);
-                    this.input.ethAddr2[i]= Scalar.fromString(oldState2.ethAddr, 16);
-
-                    const newValueId = poseidonHash([newValue, tx.fromIdx]);
-                    const oldValueId = poseidonHash([resFindExit.foundValue, tx.fromIdx]);
-                    await this.dbExit.multiDel([oldValueId]);
-                    await this.dbExit.multiIns([[newValueId, stateUtils.state2Array(newState2)]]);
-                } else {
-                    // should not matter since exit is equal 0 and processor2 is not operational
-                    // tokenID2 is still checked in L2 tx and must match
-                    this.input.sign2[i] = 0x1234;    // It should not matter
-                    this.input.ay2[i] = 0x1234;      // It should not matter
-                    this.input.balance2[i] = 0x1234; // It should not matter
-                    this.input.newExit[i]= Scalar.e(0);
-                    this.input.nonce2[i] = 0x1234;   // It should not matter
-                    this.input.tokenID2[i] = tx.onChain ? 0x1234 : Scalar.e(oldState2.tokenID);
-                    this.input.ethAddr2[i] = 0x1234; // It should not matter
-
-                }
-            } else {
-                const newValue = stateUtils.hashState(newState2);
-
-                const res = await this.stateTree.update(finalToIdx, newValue);
-                let siblings = res.siblings;
-                while (siblings.length<this.nLevels+1) siblings.push(Scalar.e(0));
-
-                // State 2
-                //It should not matter what the Tx have, because we get the input from the oldState
-                this.input.sign2[i]= Scalar.e(oldState2.sign);
-                this.input.ay2[i]= Scalar.fromString(oldState2.ay, 16);
-                this.input.balance2[i]= oldState2.balance;
-                this.input.newExit[i] = 0;
-                this.input.nonce2[i]= oldState2.nonce;
-                this.input.tokenID2[i]= Scalar.e(oldState2.tokenID);
-                this.input.ethAddr2[i]= Scalar.fromString(oldState2.ethAddr, 16);
-
-
-                this.input.siblings2[i] = siblings;
-                this.input.isOld0_2[i]= 0;
-                this.input.oldKey2[i]= 0x1234;      // It should not matter
-                this.input.oldValue2[i]= 0x1234;    // It should not matter
-
-                // get array of states saved by batch
-                const lastIdStates = await this.dbState.get(Scalar.add(Constants.DB_Idx, finalToIdx));
-                // add last batch number
-                let valStatesId;
-                if (!lastIdStates) valStatesId = [];
-                else valStatesId = [...lastIdStates];
-                if (!valStatesId.includes(this.currentNumBatch)) valStatesId.push(this.currentNumBatch);
-
-                // new state for idx
-                const newValueId = poseidonHash([newValue, finalToIdx]);
-
-                // new entry according idx and batchNumber
-                const keyIdBatch = poseidonHash([finalToIdx, this.currentNumBatch]);
-
-                await this.dbState.multiIns([
-                    [newValueId, stateUtils.state2Array(newState2)],
-                    [keyIdBatch, newValueId],
-                    [Scalar.add(Constants.DB_Idx, finalToIdx), valStatesId]
-                ]);
-            }
-        } else if (op2=="NOP") {
+            await this.dbState.multiIns([
+                [newValueId, stateUtils.state2Array(newState2)],
+                [keyIdBatch, newValueId],
+                [Scalar.add(Constants.DB_Idx, updateToIdx), valStatesId]
+            ]);
+        } else if (op2 == "NOP") {
             // State 2
-            this.input.sign2[i]= 0;
-            this.input.ay2[i]= 0;
-            this.input.balance2[i]= 0;
-            this.input.newExit[i]= 0;
-            this.input.nonce2[i]= 0;
+            this.input.sign2[i] = 0;
+            this.input.ay2[i] = 0;
+            this.input.balance2[i] = 0;
+            this.input.nonce2[i] = 0;
             this.input.tokenID2[i] = 0;
-            this.input.ethAddr2[i]= 0;
+            this.input.ethAddr2[i] = 0;
+            this.input.exitBalance2[i] = 0;
+            this.input.accumulatedHash2[i] = 0;
             this.input.siblings2[i] = [];
-            for (let j=0; j<this.nLevels+1; j++) {
-                this.input.siblings2[i][j]= 0;
+            for (let j = 0; j < this.nLevels + 1; j++) {
+                this.input.siblings2[i][j] = 0;
             }
-            this.input.isOld0_2[i]= 0;
-            this.input.oldKey2[i]= 0;
-            this.input.oldValue2[i]= 0;
         }
 
         // intermediary signals
-        if (i < this.maxNTx-1) {
+        if (i < this.maxNTx - 1) {
             if (tx.onChain) {
                 this.input.imOnChain[i] = Scalar.e(1);
             } else {
@@ -717,7 +633,6 @@ module.exports = class BatchBuilder {
             this.input.imOutIdx[i] = this.finalIdx;
 
             this.input.imStateRoot[i] = this.stateTree.root;
-            this.input.imExitRoot[i] = this.exitTree.root;
             this.input.imAccFeeOut[i] = [];
             for (let j = 0; j < this.totalFeeTransactions; j++) {
                 this.input.imAccFeeOut[i][j] = this.feeTotals[j];
@@ -741,8 +656,8 @@ module.exports = class BatchBuilder {
             if (!newBatchIdx.includes(tx.fromIdx)) newBatchIdx.push(tx.fromIdx);
         }
 
-        if (op2 == "UPDATE" && !isExit) {
-            if (!newBatchIdx.includes(finalToIdx)) newBatchIdx.push(finalToIdx);
+        if (op2 == "UPDATE") {
+            if (!newBatchIdx.includes(updateToIdx)) newBatchIdx.push(updateToIdx);
         }
         await this.dbState.multiIns([
             [keyNumBatchIdx, newBatchIdx],
@@ -792,12 +707,14 @@ module.exports = class BatchBuilder {
         this.input.nonce3[i] = 0;
         this.input.ethAddr3[i] = 0;
         this.input.tokenID3[i] = 0;
+        this.input.exitBalance3[i] = 0;
+        this.input.accumulatedHash3[i] = 0;
         this.input.siblings3[i] = [];
-        for (let  j= 0; j < this.nLevels + 1; j++) {
+        for (let  j = 0; j < this.nLevels + 1; j++) {
             this.input.siblings3[i][j] = 0;
         }
 
-        if (i < this.totalFeeTransactions-1) {
+        if (i < this.totalFeeTransactions - 1) {
             this.input.imStateRootFee[i] = this.stateTree.root;
         }
     }
@@ -841,16 +758,18 @@ module.exports = class BatchBuilder {
 
                     const res = await this.stateTree.update(feeIdx, newValue);
                     let siblings = res.siblings;
-                    while (siblings.length < this.nLevels+1) siblings.push(Scalar.e(0));
+                    while (siblings.length < this.nLevels + 1) siblings.push(Scalar.e(0));
 
                     // StateFee i
                     // get the input from the oldState
-                    this.input.sign3[i]= Scalar.e(oldState.sign);
-                    this.input.ay3[i]= Scalar.fromString(oldState.ay, 16);
-                    this.input.balance3[i]= oldState.balance;
-                    this.input.nonce3[i]= oldState.nonce;
-                    this.input.tokenID3[i]= oldState.tokenID;
-                    this.input.ethAddr3[i]= Scalar.fromString(oldState.ethAddr, 16);
+                    this.input.sign3[i] = Scalar.e(oldState.sign);
+                    this.input.ay3[i] = Scalar.fromString(oldState.ay, 16);
+                    this.input.balance3[i] = oldState.balance;
+                    this.input.nonce3[i] = oldState.nonce;
+                    this.input.tokenID3[i] = oldState.tokenID;
+                    this.input.ethAddr3[i] = Scalar.fromString(oldState.ethAddr, 16);
+                    this.input.exitBalance3[i] = Scalar.e(oldState.exitBalance);
+                    this.input.accumulatedHash3[i] = Scalar.e(oldState.accumulatedHash);
                     this.input.siblings3[i] = siblings;
 
                     // Update DB
@@ -874,7 +793,7 @@ module.exports = class BatchBuilder {
                         [Scalar.add(Constants.DB_Idx, feeIdx), valStatesId]
                     ]);
 
-                    if (i < this.totalFeeTransactions-1) {
+                    if (i < this.totalFeeTransactions - 1) {
                         this.input.imStateRootFee[i] = this.stateTree.root;
                     }
 
@@ -1030,7 +949,6 @@ module.exports = class BatchBuilder {
             imOutIdx: [],
             // rollup-tx
             imStateRoot: [],
-            imExitRoot: [],
             imAccFeeOut: [],
             // fee-tx
             imStateRootFee: [],
@@ -1076,6 +994,8 @@ module.exports = class BatchBuilder {
             balance1: [],
             ay1: [],
             ethAddr1: [],
+            exitBalance1: [],
+            accumulatedHash1: [],
             siblings1: [],
             // Required for inserts and deletes
             isOld0_1: [],
@@ -1089,12 +1009,9 @@ module.exports = class BatchBuilder {
             balance2: [],
             ay2: [],
             ethAddr2: [],
+            exitBalance2: [],
+            accumulatedHash2: [],
             siblings2: [],
-            newExit: [],
-            // Required for inserts and deletes
-            isOld0_2: [],
-            oldKey2: [],
-            oldValue2: [],
 
             // fee tx
             // State fees
@@ -1104,6 +1021,8 @@ module.exports = class BatchBuilder {
             balance3: [],
             ay3: [],
             ethAddr3: [],
+            exitBalance3: [],
+            accumulatedHash3: [],
             siblings3: [],
         };
 
@@ -1200,15 +1119,6 @@ module.exports = class BatchBuilder {
     }
 
     /**
-     * Return the last exit root after the batch is builded
-     * @return {Scalar} Exit root
-     */
-    getNewExitRoot() {
-        if (!this.builded) throw new Error("Batch must first be builded");
-        return this.exitTree.root;
-    }
-
-    /**
      * Computes hash of all pretended public inputs
      * @return {Scalar} hash global input
      */
@@ -1230,7 +1140,6 @@ module.exports = class BatchBuilder {
 
         const oldStateRoot = this.getOldStateRoot();
         const newStateRoot = this.getNewStateRoot();
-        const newExitRoot = this.getNewExitRoot();
 
         // L1TxData
         let L1FullTxsData = this.getL1TxsFullData();
@@ -1249,9 +1158,6 @@ module.exports = class BatchBuilder {
         const currentNumBatch = this.currentNumBatch;
         let strCurrentNumBatch = utils.padZeros(currentNumBatch.toString("16"), this.numBatchB / 4);
 
-        // string hexacecimal newExitRoot
-        let strNewExitRoot = utils.padZeros(newExitRoot.toString("16"), this.rootB / 4);
-
         // string hexacecimal newStateRoot
         let strNewStateRoot = utils.padZeros(newStateRoot.toString("16"), this.rootB / 4);
 
@@ -1262,11 +1168,11 @@ module.exports = class BatchBuilder {
         let res = Scalar.e(0);
         res = Scalar.add(res, newLastIdx);
         res = Scalar.add(res, Scalar.shl(oldLastIdx, this.maxIdxB));
-        const finalIdxStr = utils.padZeros(res.toString("16"), (2*this.maxIdxB) / 4);
+        const finalIdxStr = utils.padZeros(res.toString("16"), (2 * this.maxIdxB) / 4);
 
         // build input string
-        const finalStr = finalIdxStr.concat(strOldStateRoot).concat(strNewStateRoot).concat(strNewExitRoot)
-            .concat(L1FullTxsData).concat(txsData).concat(feeTxsData).concat(strChainID).concat(strCurrentNumBatch);
+        const finalStr = finalIdxStr.concat(strOldStateRoot).concat(strNewStateRoot).concat(L1FullTxsData)
+            .concat(txsData).concat(feeTxsData).concat(strChainID).concat(strCurrentNumBatch);
 
         return finalStr;
     }
@@ -1420,7 +1326,7 @@ module.exports = class BatchBuilder {
         const tmpState = {};
         const idxChanges = {};
 
-        for (let i=0; i<this.onChainTxs.length; i++) {
+        for (let i = 0; i < this.onChainTxs.length; i++) {
             const fromIdx = this.onChainTxs[i].fromIdx;
             const toIdx = this.onChainTxs[i].toIdx;
             if (idxChanges[fromIdx] == undefined && fromIdx != 0)
