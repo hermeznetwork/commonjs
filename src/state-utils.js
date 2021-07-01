@@ -78,7 +78,7 @@ function getAx(sign, ay){
  * @returns {Scalar} Next accumulated hash
  */
 function computeAccumulatedHash(previousHash, tx, nLevels){
-    const dataAvailability = txUtils.encodeL2Tx(tx, nLevels);
+    const dataAvailability = tx.onChain ? txUtils.encodeL1Tx(tx, nLevels) : txUtils.encodeL2Tx(tx, nLevels);
     return poseidonHash([previousHash, Scalar.fromString(dataAvailability, 16)]);
 }
 
