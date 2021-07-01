@@ -875,20 +875,16 @@ describe("Rollup Db - batchbuilder", async function(){
         "000000000000";
 
         const resTxsData =
-            "0000000000000000000000000000" +
-            "0000000000000000000000000000" +
-            "0000010000000101000000006400" +
             "000001000000010100000000327e" +
+            "0000000000000000000000000000" +
+            "0000000000000000000000000000" +
+            "0000000000000000000000000000" +
             "0000000000000000000000000000" +
             "0000000000000000000000000000" +
             "0000000000000000000000000000" +
             "0000000000000000000000000000";
 
-        const resTxsDataSM = "0x" +
-            "0000000000000000000000000000" +
-            "0000000000000000000000000000" +
-            "0000010000000101000000006400" +
-            "000001000000010100000000327e";
+        const resTxsDataSM = "0x000001000000010100000000327e";
 
         const resFeeData = "00000104000001050000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
         + "0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
@@ -897,8 +893,8 @@ describe("Rollup Db - batchbuilder", async function(){
         + "000000000000000000000000000000000000000000000000000000000";
 
         const batchL1Data = await bb.getL1TxsFullData();
-        const batchTxsData = await bb.getL1L2TxsData();
-        const batchTxsDataSM = await bb.getL1L2TxsDataSM();
+        const batchTxsData = await bb.getL2TxsData();
+        const batchTxsDataSM = await bb.getL2TxsDataSM();
         const batchFeeData = await bb.getFeeTxsData();
 
         expect(resL1Data).to.be.equal(batchL1Data.toString());
@@ -907,7 +903,7 @@ describe("Rollup Db - batchbuilder", async function(){
         expect(resFeeData).to.be.equal(batchFeeData.toString());
 
         // input hash
-        const resInputHash = "19377456725856121152838237812130123789886310451262992986461154440516302272162";
+        const resInputHash = "6932249851646571237389724163539642577367515964488800375683596608337474035483";
 
         const batchInputHash = await bb.getHashInputs();
         expect(resInputHash).to.be.equal(batchInputHash.toString());
@@ -923,12 +919,12 @@ describe("Rollup Db - batchbuilder", async function(){
         await rollupDB.consolidate(bb);
 
         // Check L1, L2, Fee data
-        const resL1Data = "0".repeat(864+6*6*2);
-        const resL2Data = "0".repeat(176+8*3*2);
+        const resL1Data = "0".repeat(864 + 6 * 6 * 2);
+        const resL2Data = "0".repeat(176 + 8 * 3 * 2);
         const resFeeData = "0".repeat(512);
 
         const batchL1Data = await bb.getL1TxsFullData();
-        const batchL2Data = await bb.getL1L2TxsData();
+        const batchL2Data = await bb.getL2TxsData();
         const batchFeeData = await bb.getFeeTxsData();
 
         expect(batchL1Data.toString()).to.be.equal(resL1Data);
