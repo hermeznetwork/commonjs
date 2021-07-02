@@ -26,7 +26,7 @@ class RollupDB {
      * @param {Scalar} nFeeTx - Number of fee Tx (maximum number of txs)
      */
     async buildBatch(maxNTx, nLevels, maxL1Tx, nFeeTx) {
-        return new BatchBuilder(this, this.lastBatch+1, this.stateRoot,
+        return new BatchBuilder(this, this.lastBatch + 1, this.stateRoot,
             this.initialIdx, maxNTx, nLevels, maxL1Tx, this.chainID, nFeeTx || 64);
     }
 
@@ -35,25 +35,25 @@ class RollupDB {
      * @param {Object} bb - Batchbuilder object
      */
     async consolidate(bb) {
-        if (bb.batchNumber != this.lastBatch +1) {
+        if (bb.batchNumber != this.lastBatch + 1) {
             throw new Error("Updating the wrong batch");
         }
+
         if (!bb.builded) {
             await bb.build();
         }
+
         const insertsState = Object.keys(bb.dbState.inserts).reverse().map(function(key) {
             return [Scalar.e(key), bb.dbState.inserts[key]];
         });
-        const insertsExit = Object.keys(bb.dbExit.inserts).map(function(key) {
-            return [Scalar.e(key), bb.dbExit.inserts[key]];
-        });
+
         await this.db.multiIns([
             ...insertsState,
-            ...insertsExit,
-            [ Scalar.add(Constants.DB_Batch, bb.batchNumber), [bb.stateTree.root, bb.exitTree.root]],
+            [ Scalar.add(Constants.DB_Batch, bb.batchNumber), bb.stateTree.root],
             [ Scalar.add(Constants.DB_InitialIdx, bb.batchNumber), bb.finalIdx],
             [ Constants.DB_Master, bb.batchNumber]
         ]);
+
         this.lastBatch = bb.batchNumber;
         this.stateRoot = bb.stateTree.root;
         this.initialIdx = bb.finalIdx;
@@ -106,7 +106,6 @@ class RollupDB {
         if (!stateArray) return null;
         const st = stateUtils.array2State(stateArray);
         st.idx = Number(idx);
-        // st.rollupAddress = this.pointToCompress(st.ax, st.ay);
         return st;
     }
 
@@ -120,7 +119,7 @@ class RollupDB {
         const idxs = await this.getIdxsBySignAy(sign, ay);
         if (!idxs) return null;
         const promises = [];
-        for (let i=0; i<idxs.length; i++) {
+        for (let i = 0; i < idxs.length; i++) {
             promises.push(this.getStateByIdx(idxs[i]));
         }
         return Promise.all(promises);
@@ -136,7 +135,7 @@ class RollupDB {
 
         if (!idxs) return null;
         const promises = [];
-        for (let i=0; i<idxs.length; i++) {
+        for (let i = 0; i < idxs.length; i++) {
             promises.push(this.getStateByIdx(idxs[i]));
         }
         return Promise.all(promises);
@@ -182,17 +181,18 @@ class RollupDB {
     }
 
     /**
-     * Get exit tree information for some account in an specific batch
+     * Get exit information for some account in a specific batch
      * @param {Number} idx - merkle tree index
      * @param {Scalar} numBatch - Batch number
      * @returns {Object} Exit tree information
      */
-    async getExitTreeInfo(idx, numBatch){
-        const rootExitTree = await this.getExitRoot(numBatch);
-        if (!rootExitTree) return null;
-        const dbExit = new SMTTmpDb(this.db);
-        const tmpExitTree = new SMT(dbExit, rootExitTree);
-        const resFindExit = await tmpExitTree.find(Scalar.e(idx));
+    async getExitInfo(idx, numBatch){
+        const stateRoot = await this.getStateRoot(numBatch);
+
+        if (!stateRoot) return null;
+        const dbState = new SMTTmpDb(this.db);
+        const tmpStateTree = new SMT(dbState, stateRoot);
+        const resFindExit = await tmpStateTree.find(Scalar.e(idx));
         // Get leaf information
         if (resFindExit.found) {
             const foundValueId = poseidonHash([resFindExit.foundValue, idx]);
@@ -237,22 +237,6 @@ class RollupDB {
     }
 
     /**
-     * Return the exit root saved in rollupDb depending on batch number
-     * @param {Scalar} numBatch - Batch number
-     * @returns {Scalar} exit root
-     */
-    async getExitRoot(numBatch){
-        if (numBatch > this.lastBatch)
-            return null;
-
-        const keyRoot = Scalar.add(Constants.DB_Batch, Scalar.e(numBatch));
-        const rootValues = await this.db.get(keyRoot);
-        if (!rootValues) return null;
-        const rootExitTree = rootValues[1];
-        return rootExitTree;
-    }
-
-    /**
      * Return the state root saved in rollupDb depending on batch number
      * @param {Scalar} numBatch - Batch number
      * @returns {Scalar} state root
@@ -262,10 +246,9 @@ class RollupDB {
             return null;
 
         const keyRoot = Scalar.add(Constants.DB_Batch, Scalar.e(numBatch));
-        const rootValues = await this.db.get(keyRoot);
-        if (!rootValues) return null;
-        const rootExitTree = rootValues[0];
-        return rootExitTree;
+        const rootValue = await this.db.get(keyRoot);
+        if (!rootValue) return null;
+        return rootValue;
     }
 
     /**
@@ -386,7 +369,7 @@ class RollupDB {
         let indexFound = null;
         for (let i = states.length - 1; i >= 0; i--){
             if (Scalar.leq(states[i], numBatch)){
-                indexFound = i+1;
+                indexFound = i + 1;
                 break;
             }
         }
@@ -437,11 +420,11 @@ module.exports = async function(db, chainID) {
         ]);
         return new RollupDB(db, 0, Scalar.e(0), Constants.firstIdx, setChainID);
     }
-    const roots = await db.get(Scalar.add(Constants.DB_Batch, Scalar.e(master)));
+    const stateRoot = await db.get(Scalar.add(Constants.DB_Batch, Scalar.e(master)));
     const initialIdx = await db.get(Scalar.add(Constants.DB_InitialIdx, Scalar.e(master)));
-    const dBchainID = await db.get(Scalar.add(Constants.DB_ChainID));
-    if (!roots) {
+    const dBchainID = await db.get(Constants.DB_ChainID);
+    if (!stateRoot) {
         throw new Error("Database corrupted");
     }
-    return new RollupDB(db, master, roots[0], initialIdx, dBchainID);
+    return new RollupDB(db, master, stateRoot, initialIdx, dBchainID);
 };

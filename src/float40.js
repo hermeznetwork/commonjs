@@ -33,7 +33,7 @@ function fix2Float(_f) {
         e++;
     }
 
-    if (e>31) {
+    if (e > 31) {
         throw new Error("number too big");
     }
 
@@ -62,7 +62,7 @@ function floorFix2Float(_f){
         e++;
     }
 
-    if (e>31) {
+    if (e > 31) {
         throw new Error("number too big");
     }
 
@@ -89,7 +89,7 @@ function round(fix){
         e++;
     }
 
-    if (e>31) {
+    if (e > 31) {
         throw new Error("number too big");
     }
 

@@ -132,7 +132,7 @@ async function assertDbs(memDb, toCheckDb){
     const memRoot = await memDb.db.getRoot();
     const checkRoot = await toCheckDb.db.getRoot();
     expect(memRoot.toString()).to.be.equal(checkRoot.toString());
-    
+
     // Check database
     const keys = Object.keys(memDb.db.nodes);
     for (const key of keys) {
@@ -143,7 +143,7 @@ async function assertDbs(memDb, toCheckDb){
 }
 
 describe("RollupDb: memDb - LevelDb", async function () {
-    
+
     let rollupMemDb;
     let rollupLevelDb;
 

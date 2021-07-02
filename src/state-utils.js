@@ -4,6 +4,7 @@ const poseidonHash = require("circomlib").poseidon;
 const babyJub = require("circomlib").babyJub;
 
 const utils = require("./utils");
+const txUtils = require("./tx-utils");
 
 /**
  * Encode a state object into an array
@@ -12,21 +13,23 @@ const utils = require("./utils");
  */
 function state2Array(st) {
     let data = Scalar.e(0);
-    
-    data = Scalar.add(data, st.tokenID);
-    data = Scalar.add(data, Scalar.shl(st.nonce, 32));
-    data = Scalar.add(data, Scalar.shl(st.sign, 72));
+
+    data = Scalar.add(data, st.tokenID); // 32 bits
+    data = Scalar.add(data, Scalar.shl(st.nonce, 32)); // 40 bits
+    data = Scalar.add(data, Scalar.shl(st.sign, 72)); // 1 bit
 
     return [
         data,
         Scalar.e(st.balance),
         Scalar.fromString(st.ay, 16),
         Scalar.fromString(st.ethAddr, 16),
+        Scalar.e(st.exitBalance),
+        Scalar.e(st.accumulatedHash),
     ];
 }
 
 /**
- * Parse encoded array into a state object 
+ * Parse encoded array into a state object
  * @param {Array} a - Encoded array
  * @returns {Object} Merkle tree state object
  */
@@ -38,6 +41,8 @@ function array2State(a) {
         balance: Scalar.e(a[1]),
         ay: Scalar.e(a[2]).toString(16),
         ethAddr: "0x" + utils.padZeros(Scalar.e(a[3]).toString(16), 40),
+        exitBalance: Scalar.e(a[4]),
+        accumulatedHash: Scalar.e(a[5]),
     };
 }
 
@@ -65,9 +70,22 @@ function getAx(sign, ay){
     return point[0].toString(16);
 }
 
+/**
+ * compute accumulated hash given a tx
+ * @param {Scalar} previousHash - previous accumulated hash
+ * @param {Object} tx - transaction object
+ * @param {Number} nLevels - merkle tree depth
+ * @returns {Scalar} Next accumulated hash
+ */
+function computeAccumulatedHash(previousHash, tx, nLevels){
+    const dataAvailability = tx.onChain ? txUtils.encodeL1Tx(tx, nLevels) : txUtils.encodeL2Tx(tx, nLevels);
+    return poseidonHash([previousHash, Scalar.fromString(dataAvailability, 16)]);
+}
+
 module.exports = {
     state2Array,
     array2State,
     hashState,
     getAx,
+    computeAccumulatedHash
 };

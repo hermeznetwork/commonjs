@@ -7,7 +7,6 @@ const float40 = require("../index").float40;
 const Constants = require("../index").Constants;
 
 describe("Tx-utils", function () {
-
     it("tx compressed data", async () => {
         const tx = {
             chainID: 1,

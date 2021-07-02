@@ -10,7 +10,7 @@ const babyJub = require("circomlib").babyJub;
  */
 function padding256(n) {
     let nstr = Scalar.e(n).toString(16);
-    while (nstr.length < 64) nstr = "0"+nstr;
+    while (nstr.length < 64) nstr = "0" + nstr;
     nstr = `0x${nstr}`;
     return nstr;
 }

@@ -1,7 +1,7 @@
 const Scalar = require("ffjavascript").Scalar;
 
 /**
- * Creates an in memory cached version of a tree 
+ * Creates an in memory cached version of a tree
  */
 class SMTTmpDb {
     constructor(srcDb) {
@@ -36,7 +36,7 @@ class SMTTmpDb {
      * @param {Array} n - Array of inserts
      */
     _normalize(n) {
-        for (let i=0; i<n.length; i++) {
+        for (let i = 0; i < n.length; i++) {
             n[i] = Scalar.e(n[i]);
         }
     }
@@ -64,7 +64,7 @@ class SMTTmpDb {
      */
     async multiGet(keys) {
         const promises = [];
-        for (let i=0; i<keys.length; i++) {
+        for (let i = 0; i < keys.length; i++) {
             promises.push(this.get(keys[i]));
         }
         return await Promise.all(promises);
@@ -83,7 +83,7 @@ class SMTTmpDb {
      * @param {Array} inserts - Array of keys
      */
     async multiIns(inserts) {
-        for (let i=0; i<inserts.length; i++) {
+        for (let i = 0; i < inserts.length; i++) {
             const keyS = this._key2str(inserts[i][0]);
             this._normalize(inserts[i][1]);
             if (this.deletes[keyS]) {
@@ -98,7 +98,7 @@ class SMTTmpDb {
      * @param {Array} dels - Array of keys
      */
     async multiDel(dels) {
-        for (let i=0; i<dels.length; i++) {
+        for (let i = 0; i < dels.length; i++) {
             const keyS = this._key2str(dels[i]);
             if (this.inserts[keyS]) {
                 delete this.inserts[keyS];
