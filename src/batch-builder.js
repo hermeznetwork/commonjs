@@ -392,7 +392,8 @@ module.exports = class BatchBuilder {
                 newState2.exitBalance = Scalar.add(oldState2.exitBalance, effectiveAmount);
             } else {
                 newState2.balance = Scalar.add(oldState2.balance, effectiveAmount);
-                newState2.accumulatedHash = stateUtils.computeAccumulatedHash(oldState2.accumulatedHash, tx, this.nLevels);
+                if (!tx.isAmountNullified)
+                    newState2.accumulatedHash = stateUtils.computeAccumulatedHash(oldState2.accumulatedHash, tx, this.nLevels);
             }
         }
 
@@ -1034,16 +1035,16 @@ module.exports = class BatchBuilder {
             this.txs.push(this.onChainTxs[i]);
         }
 
-        // Add off-chain Tx
-        for (let i = 0; i < this.offChainTxs.length; i++) {
-            await this._addTx(this.offChainTxs[i]);
-            this.txs.push(this.offChainTxs[i]);
-        }
-
         // Add Nop Tx
         for (let i = 0; i < this.maxNTx - this.offChainTxs.length - this.onChainTxs.length; i++) {
             this._addNopTx();
             this.txs.push(0);
+        }
+
+        // Add off-chain Tx
+        for (let i = 0; i < this.offChainTxs.length; i++) {
+            await this._addTx(this.offChainTxs[i]);
+            this.txs.push(this.offChainTxs[i]);
         }
 
         this.stateRootBeforeFees = this.stateTree.root;
@@ -1256,7 +1257,7 @@ module.exports = class BatchBuilder {
             const tx = this.offChainTxs[i];
             finalStr = finalStr + txUtils.encodeL2Tx(tx, this.nLevels);
         }
-        return  finalStr;
+        return finalStr;
     }
 
     /**
@@ -1273,7 +1274,7 @@ module.exports = class BatchBuilder {
             const tx = this.onChainTxs[i];
             finalStr = finalStr + txUtils.encodeL1Tx(tx, this.nLevels);
         }
-        return  finalStr;
+        return finalStr;
     }
 
     /**
@@ -1286,7 +1287,7 @@ module.exports = class BatchBuilder {
 
         const dataNopTx = utils.padZeros("",
             (this.maxNTx - this.offChainTxs.length) * (this.L2TxDataB / 4));
-        return  dataNopTx;
+        return dataNopTx;
     }
 
     /**
@@ -1296,10 +1297,10 @@ module.exports = class BatchBuilder {
     getL2TxsData() {
         if (!this.builded) throw new Error("Batch must first be builded");
 
-        const dataL2Tx = this._L2TxsData();
         const dataNopTx = this._nopTxsData();
+        const dataL2Tx = this._L2TxsData();
 
-        return dataL2Tx.concat(dataNopTx);
+        return dataNopTx.concat(dataL2Tx);
     }
 
     /**
