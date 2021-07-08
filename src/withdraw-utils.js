@@ -6,31 +6,31 @@ const Constants = require("./constants");
  * @return {Scalar} hash global inputs with sha256 % rField
  */
 function hashInputsWithdraw(inputs){
-    const rootExitB = 256;
+    const rootStateB = 256;
     const ethAddrB = 160;
     const tokenIDB = 32;
-    const balanceB = 192;
+    const exitBalanceB = 192;
     const idxB = Constants.maxNlevels;
 
     if (
-        inputs.rootExit === undefined ||
+        inputs.rootState === undefined ||
         inputs.ethAddr === undefined ||
         inputs.tokenID === undefined ||
-        inputs.balance === undefined ||
+        inputs.exitBalance === undefined ||
         inputs.idx === undefined
     ) {
         throw new Error("Missing inputs fields on `hashInputWithdraw`");
     }
 
     // inputs strings hexadecimal
-    let strRootExit = utils.padZeros(inputs.rootExit.toString("16"), rootExitB / 4);
+    let strRootState = utils.padZeros(inputs.rootState.toString("16"), rootStateB / 4);
     let strEthAddr = utils.padZeros(inputs.ethAddr.toString("16"), ethAddrB / 4);
     let strTokenID = utils.padZeros(inputs.tokenID.toString("16"), tokenIDB / 4);
-    let strBalance = utils.padZeros(inputs.balance.toString("16"), balanceB / 4);
+    let strExitBalance = utils.padZeros(inputs.exitBalance.toString("16"), exitBalanceB / 4);
     let strIdx = utils.padZeros(inputs.idx.toString("16"), idxB / 4);
 
     // build final inputs string
-    const finalStr = strRootExit.concat(strEthAddr).concat(strTokenID).concat(strBalance)
+    const finalStr = strRootState.concat(strEthAddr).concat(strTokenID).concat(strExitBalance)
         .concat(strIdx);
 
     return utils.sha256Snark(finalStr);
