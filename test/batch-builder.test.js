@@ -10,7 +10,7 @@ const computeFee = require("../index").feeTable.computeFee;
 const txUtils = require("../index").txUtils;
 const stateUtils = require("../index").stateUtils;
 const float40 = require("../index").float40;
-const { depositTx } = require("./helpers/test-utils");
+const { depositTx, depositOnlyExitTx } = require("./helpers/test-utils");
 
 describe("Rollup Db - batchbuilder", async function(){
 
@@ -541,6 +541,165 @@ describe("Rollup Db - batchbuilder", async function(){
         expect(s2_2.balance.toString()).to.be.equal(Scalar.e(1050).toString());
         expect(s2_2.accumulatedHash.toString()).to.be.equal(newAccHash.toString());
         expect(s2_2.exitBalance.toString()).to.be.equal(Scalar.e(0).toString());
+    });
+
+    it("Should process only-exit account", async () => {
+        // Start a new state
+        const db = new SMTMemDB();
+        const rollupDB = await RollupDB(db);
+        const bb = await rollupDB.buildBatch(maxTx, nLevels, maxL1Tx);
+
+        const account1 = new Account(1);
+        const account2 = new Account(2);
+        const account3 = new Account(3);
+
+        depositTx(bb, account1, 1, 1000);
+        depositOnlyExitTx(bb, account2, 1, 1000);
+
+        await bb.build();
+        await rollupDB.consolidate(bb);
+
+        const bb2 = await rollupDB.buildBatch(maxTx, nLevels, maxL1Tx);
+
+        // send to exit-only account
+        const tx = {
+            fromIdx: 256,
+            toIdx: 257,
+            tokenID: 1,
+            amount: Scalar.e(50),
+            nonce: 0,
+            userFee: 126,
+        };
+
+        account1.signTx(tx);
+        bb2.addTx(tx);
+
+        await bb2.build();
+        await rollupDB.consolidate(bb2);
+
+        // check balances
+        const s1 = await rollupDB.getStateByIdx(256);
+        expect(s1.balance.toString()).to.be.equal(Scalar.e(945).toString());
+        expect(s1.exitBalance.toString()).to.be.equal(Scalar.e(0).toString());
+
+        const s2 = await rollupDB.getStateByIdx(257);
+        let newAccHash = stateUtils.computeAccumulatedHash(Scalar.e(0), tx, nLevels);
+        expect(s2.accumulatedHash.toString()).to.be.equal(newAccHash.toString());
+        expect(s2.exitBalance.toString()).to.be.equal(Scalar.e(50).toString());
+        expect(s2.balance.toString()).to.be.equal(Scalar.e(1000).toString());
+
+        // force transfer to exit-only account
+        const bb3 = await rollupDB.buildBatch(maxTx, nLevels, maxL1Tx);
+
+        const tx2 = {
+            fromIdx: 256,
+            loadAmountF: 0,
+            tokenID: 1,
+            fromBjjCompressed: 0,
+            fromEthAddr: account1.ethAddr,
+            toIdx: 257,
+            amount: 50,
+            userFee: 0,
+            onChain: true
+        };
+        bb3.addTx(tx2);
+
+        await bb3.build();
+        await rollupDB.consolidate(bb3);
+
+        // check balances
+        const s1_2 = await rollupDB.getStateByIdx(256);
+        expect(s1_2.balance.toString()).to.be.equal(Scalar.e(895).toString());
+        expect(s1_2.exitBalance.toString()).to.be.equal(Scalar.e(0).toString());
+
+        const s2_2 = await rollupDB.getStateByIdx(257);
+        newAccHash = stateUtils.computeAccumulatedHash(s2.accumulatedHash, tx2, nLevels);
+        expect(s2_2.balance.toString()).to.be.equal(Scalar.e(1000).toString());
+        expect(s2_2.accumulatedHash.toString()).to.be.equal(newAccHash.toString());
+        expect(s2_2.exitBalance.toString()).to.be.equal(Scalar.e(100).toString());
+
+        // force transfer nullified to exit-only account
+        const bb4 = await rollupDB.buildBatch(maxTx, nLevels, maxL1Tx);
+
+        const tx3 = {
+            fromIdx: 256,
+            loadAmountF: 0,
+            tokenID: 1,
+            fromBjjCompressed: 0,
+            fromEthAddr: account1.ethAddr,
+            toIdx: 257,
+            amount: 1000,
+            userFee: 0,
+            onChain: true
+        };
+        bb4.addTx(tx3);
+
+        await bb4.build();
+        await rollupDB.consolidate(bb4);
+
+        // check balances
+        const s1_3 = await rollupDB.getStateByIdx(256);
+        expect(s1_3.balance.toString()).to.be.equal(Scalar.e(895).toString());
+        expect(s1_3.exitBalance.toString()).to.be.equal(Scalar.e(0).toString());
+
+        const s2_3 = await rollupDB.getStateByIdx(257);
+        expect(s2_3.balance.toString()).to.be.equal(Scalar.e(1000).toString());
+        expect(s2_3.accumulatedHash.toString()).to.be.equal(newAccHash.toString());
+        expect(s2_3.exitBalance.toString()).to.be.equal(Scalar.e(100).toString());
+
+        // force exit from exit-only account
+        const bb5 = await rollupDB.buildBatch(maxTx, nLevels, maxL1Tx);
+
+        const tx4 = {
+            fromIdx: 257,
+            loadAmountF: 0,
+            tokenID: 1,
+            fromBjjCompressed: 0,
+            fromEthAddr: account2.ethAddr,
+            toIdx: Constants.exitIdx,
+            amount: 120,
+            userFee: 0,
+            onChain: true
+        };
+        bb5.addTx(tx4);
+
+        await bb5.build();
+        await rollupDB.consolidate(bb5);
+
+        const s2_4 = await rollupDB.getStateByIdx(257);
+        expect(s2_4.balance.toString()).to.be.equal(Scalar.e(880).toString());
+        expect(s2_4.accumulatedHash.toString()).to.be.equal(newAccHash.toString());
+        expect(s2_4.exitBalance.toString()).to.be.equal(Scalar.e(220).toString());
+
+        // create account deposit and transfer to exit-only account
+        const bb6 = await rollupDB.buildBatch(maxTx, nLevels, maxL1Tx);
+
+        const tx5 = {
+            fromIdx: 0,
+            loadAmountF: 500,
+            tokenID: 1,
+            fromBjjCompressed: account3.bjjCompressed,
+            fromEthAddr: account3.ethAddr,
+            toIdx: 257,
+            amount: 100,
+            userFee: 0,
+            onChain: true
+        };
+
+        bb6.addTx(tx5);
+
+        await bb6.build();
+        await rollupDB.consolidate(bb6);
+
+        const s2_5 = await rollupDB.getStateByIdx(257);
+        newAccHash = stateUtils.computeAccumulatedHash(s2_2.accumulatedHash, tx5, nLevels);
+        expect(s2_5.balance.toString()).to.be.equal(Scalar.e(880).toString());
+        expect(s2_5.accumulatedHash.toString()).to.be.equal(newAccHash.toString());
+        expect(s2_5.exitBalance.toString()).to.be.equal(Scalar.e(320).toString());
+
+        const s3 = await rollupDB.getStateByIdx(258);
+        expect(s3.balance.toString()).to.be.equal(Scalar.e(400).toString());
+        expect(s3.exitBalance.toString()).to.be.equal(Scalar.e(0).toString());
     });
 
     it("Should check fee accumulated, fee plan tokens, fee idxs & pay fees on L2", async () => {
