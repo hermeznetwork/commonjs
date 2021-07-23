@@ -1,8 +1,6 @@
 const assert = require("assert");
 const Scalar = require("ffjavascript").Scalar;
-// const utilsScalar = require("ffjavascript").utils;
 const poseidonHash = require("circomlib").poseidon;
-// const babyJub = require("circomlib").babyJub;
 const SMT = require("circomlib").SMT;
 
 const SMTTmpDb = require("./smt-tmp-db");
@@ -265,6 +263,19 @@ module.exports = class BatchBuilder {
             fee2Charge = feeUtils.computeFee(tx.amount, tx.userFee);
         }
 
+        // is only-exit account
+        let isOnlyExitAccount = false;
+
+        if (op2 == "UPDATE" && !isExit){
+            const stateSign = Scalar.e(oldState2.sign);
+            const stateAy = Scalar.fromString(oldState2.ay, 16);
+
+            if (Scalar.eq(stateSign, Constants.onlyExitBjjSign)  &&
+                Scalar.eq(stateAy, Scalar.fromString(Constants.onlyExitBjjAy, 16))){
+                isOnlyExitAccount = true;
+            }
+        }
+
         // compute applyEthAddr
         let nullifyLoadAmount = false;
         let nullifyAmount = false;
@@ -285,7 +296,7 @@ module.exports = class BatchBuilder {
                 }
             }
 
-            if (Scalar.gt(amount, 0) && op2 != "INSERT"){
+            if (Scalar.gt(amount, 0)){
                 if (tx.tokenID != oldState2.tokenID){
                     applyNullifierTokenID2 = true;
                 }
@@ -390,6 +401,10 @@ module.exports = class BatchBuilder {
 
             if (isExit){
                 newState2.exitBalance = Scalar.add(oldState2.exitBalance, effectiveAmount);
+            } else if (isOnlyExitAccount) {
+                newState2.exitBalance = Scalar.add(oldState2.exitBalance, effectiveAmount);
+                if (!tx.isAmountNullified)
+                    newState2.accumulatedHash = stateUtils.computeAccumulatedHash(oldState2.accumulatedHash, tx, this.nLevels);
             } else {
                 newState2.balance = Scalar.add(oldState2.balance, effectiveAmount);
                 if (!tx.isAmountNullified)
@@ -676,7 +691,7 @@ module.exports = class BatchBuilder {
             if (!newStatesAxAy.includes(hashAxAy)) {
                 newStatesAxAy.push(hashAxAy);
                 await this.dbState.multiIns([
-                    [hashAxAy, [fromSign, fromSign]],
+                    [hashAxAy, [fromSign, Scalar.fromString(fromAy, 16)]],
                     [keyNumBatchAxAy, newStatesAxAy],
                 ]);
             }
