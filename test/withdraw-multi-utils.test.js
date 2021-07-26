@@ -29,6 +29,7 @@ describe("Withdraw Multi Tokens utils", function () {
             },
             hashInputs: "2947191321456247468500536442667528073422395474054880626898411652320224760326",
         });
+
         // data has been retrieved from smart contract `Hermez.sol` tests
         testVectors1.push({
             inputs: {
@@ -51,6 +52,7 @@ describe("Withdraw Multi Tokens utils", function () {
             },
             hashInputs: "16156768620914124825192675433853783412642934703585261543172402974275274063611",
         });
+
         // data has been retrieved from smart contract `HermezV2.sol` tests
         testVectors1.push({
             inputs: {
