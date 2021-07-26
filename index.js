@@ -10,3 +10,4 @@ module.exports.Constants = require("./src/constants");
 module.exports.RollupDB = require("./src/rollup-db");
 module.exports.BatchBuilder = require("./src/batch-builder");
 module.exports.withdrawUtils = require("./src/withdraw-utils");
+module.exports.withdrawMultiUtils = require("./src/withdraw-multi-utils");
