@@ -9,6 +9,8 @@ const utilsScalar = require("ffjavascript").utils;
 
 const txUtils = require("./tx-utils");
 const utils = require("./utils");
+const withdrawUtils = require("./withdraw-utils");
+
 
 module.exports = class HermezAccount {
     constructor(privateKey) {
@@ -80,5 +82,17 @@ module.exports = class HermezAccount {
         tx.s = signature.S;
         tx.fromAx = this.ax;
         tx.fromAy = this.ay;
+    }
+
+    /**
+     * Sign withdraw bjj
+     * @param {String} ethAddrSender - Ethereum address that will be the msg.sender
+     * @param {String} ethAddrReciever - Ethereum address that will recieve the withdraw
+     * @return {Scalar} signature parameters.
+     */
+    signWithdraw(ethAddrSender, ethAddrReciever) {
+        const h = withdrawUtils.hashWithdrawBjjSignature(ethAddrSender, ethAddrReciever);
+        const signature = eddsa.signPoseidon(this.rollupPrvKey, h);
+        return signature;
     }
 };
