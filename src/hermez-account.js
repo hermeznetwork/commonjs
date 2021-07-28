@@ -85,13 +85,12 @@ module.exports = class HermezAccount {
     }
 
     /**
-     * Sign withdraw bjj
-     * @param {String} ethAddrSender - Ethereum address that will be the msg.sender
-     * @param {String} ethAddrReciever - Ethereum address that will recieve the withdraw
-     * @return {Scalar} signature parameters.
+     * Sign withdraw-bjj
+     * @param {Object} inputs - Zk inputs  for the withdraw-bjj circuit
+     * @return {Scalar} Signature parameters.
      */
-    signWithdraw(ethAddrSender, ethAddrReciever) {
-        const h = withdrawUtils.hashWithdrawBjjSignature(ethAddrSender, ethAddrReciever);
+    signWithdrawBjj(inputs) {
+        const h = withdrawUtils.hashInputsWithdrawBjj(inputs);
         const signature = eddsa.signPoseidon(this.rollupPrvKey, h);
         return signature;
     }

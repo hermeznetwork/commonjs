@@ -1,7 +1,5 @@
 const utils = require("./utils");
 const Constants = require("./constants");
-const poseidonHash = require("circomlib").poseidon;
-const Scalar = require("ffjavascript").Scalar;
 
 /**
  * @param {Object} inputs - Object containing all withdraw inputs
@@ -16,7 +14,7 @@ function hashInputsWithdraw(inputs){
 
     if (
         inputs.rootState === undefined ||
-        inputs.ethAddr === undefined ||
+        inputs.ethAddrState === undefined ||
         inputs.tokenID === undefined ||
         inputs.exitBalance === undefined ||
         inputs.idx === undefined
@@ -26,13 +24,13 @@ function hashInputsWithdraw(inputs){
 
     // inputs strings hexadecimal
     let strRootState = utils.padZeros(inputs.rootState.toString("16"), rootStateB / 4);
-    let strEthAddr = utils.padZeros(inputs.ethAddr.toString("16"), ethAddrB / 4);
+    let strEthAddrState = utils.padZeros(inputs.ethAddrState.toString("16"), ethAddrB / 4);
     let strTokenID = utils.padZeros(inputs.tokenID.toString("16"), tokenIDB / 4);
     let strExitBalance = utils.padZeros(inputs.exitBalance.toString("16"), exitBalanceB / 4);
     let strIdx = utils.padZeros(inputs.idx.toString("16"), idxB / 4);
 
     // build final inputs string
-    const finalStr = strRootState.concat(strEthAddr).concat(strTokenID).concat(strExitBalance)
+    const finalStr = strRootState.concat(strEthAddrState).concat(strTokenID).concat(strExitBalance)
         .concat(strIdx);
 
     return utils.sha256Snark(finalStr);
@@ -51,8 +49,8 @@ function hashInputsWithdrawBjj(inputs){
     const idxB = Constants.maxNlevels;
     if (
         inputs.rootState === undefined ||
-        inputs.ethAddrSender === undefined ||
-        inputs.ethAddrReciever === undefined ||
+        inputs.ethAddrCaller === undefined ||
+        inputs.ethAddrBeneficiary === undefined ||
         inputs.tokenID === undefined ||
         inputs.exitBalance === undefined ||
         inputs.idx === undefined
@@ -62,36 +60,20 @@ function hashInputsWithdrawBjj(inputs){
 
     // inputs strings hexadecimal
     let strRootState = utils.padZeros(inputs.rootState.toString("16"), rootStateB / 4);
-    let strEthAddrSender = utils.padZeros(inputs.ethAddrSender.toString("16"), ethAddrB / 4);
-    let ethAddrReciever = utils.padZeros(inputs.ethAddrReciever.toString("16"), ethAddrB / 4);
+    let strEthAddrCaller = utils.padZeros(inputs.ethAddrCaller.toString("16"), ethAddrB / 4);
+    let strEthAddrBeneficiary = utils.padZeros(inputs.ethAddrBeneficiary.toString("16"), ethAddrB / 4);
     let strTokenID = utils.padZeros(inputs.tokenID.toString("16"), tokenIDB / 4);
     let strExitBalance = utils.padZeros(inputs.exitBalance.toString("16"), exitBalanceB / 4);
     let strIdx = utils.padZeros(inputs.idx.toString("16"), idxB / 4);
 
     // build final inputs string
-    const finalStr = strRootState.concat(strEthAddrSender).concat(ethAddrReciever)
+    const finalStr = strRootState.concat(strEthAddrCaller).concat(strEthAddrBeneficiary)
         .concat(strTokenID).concat(strExitBalance).concat(strIdx);
     
     return utils.sha256Snark(finalStr);
 }
 
-/**
- * @param {String} ethAddrSender - Ethereum address that will be the msg.sender
- * @param {String} ethAddrReciever - Ethereum address that will recieve the withdraw
- * @return {Scalar} hash global inputs with sha256 % rField 
- */
-function hashWithdrawBjjSignature(ethAddrSender, ethAddrReciever){
-    const h = poseidonHash([
-        Scalar.fromString(ethAddrSender || "0", 16),
-        Scalar.fromString(ethAddrReciever || "0", 16),
-    ]);
-
-    return h;
-}
-
-
 module.exports = {
     hashInputsWithdraw,
-    hashWithdrawBjjSignature,
     hashInputsWithdrawBjj
 };
