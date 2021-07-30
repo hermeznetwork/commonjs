@@ -5,6 +5,7 @@ const Scalar = require("ffjavascript").Scalar;
 
 const Account = require("../index").HermezAccount;
 const txUtils = require("../index").txUtils;
+const withdrawUtils = require("../index").withdrawUtils;
 
 describe("Hermez account", () => {
     let account;
@@ -52,5 +53,28 @@ describe("Hermez account", () => {
         // Verify transaction
         const res = txUtils.verifyTxSig(tx);
         expect(res).to.be.equal(true);
+    });
+
+    it("Sign withdraw Bjj", async () => {
+        const account = new Account(1);
+
+        // bjj signature
+        const zkInputs = {
+            rootState: Scalar.sub(Scalar.shl(1, 256), 1),
+            ethAddrCaller: Scalar.sub(Scalar.shl(1, 160), 1),
+            ethAddrBeneficiary: Scalar.sub(Scalar.shl(1, 160), 1),
+            tokenID: Scalar.sub(Scalar.shl(1, 32), 1),
+            exitBalance: Scalar.sub(Scalar.shl(1, 192), 1),
+            idx: Scalar.sub(Scalar.shl(1, 48), 1),
+        };
+
+        const signature = account.signWithdrawBjj(zkInputs);
+
+        expect(signature.R8[0]).to.be.not.equal(undefined);
+        expect(signature.R8[1]).to.be.not.equal(undefined);
+        expect(signature.S).to.be.not.equal(undefined);
+
+        // Verify withdraw bjj signature
+        expect(withdrawUtils.verifyWithdrawBjjSig(zkInputs, account, signature)).to.be.equal(true);
     });
 });

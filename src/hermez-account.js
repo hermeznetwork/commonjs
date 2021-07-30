@@ -9,6 +9,8 @@ const utilsScalar = require("ffjavascript").utils;
 
 const txUtils = require("./tx-utils");
 const utils = require("./utils");
+const withdrawUtils = require("./withdraw-utils");
+
 
 module.exports = class HermezAccount {
     constructor(privateKey) {
@@ -80,5 +82,17 @@ module.exports = class HermezAccount {
         tx.s = signature.S;
         tx.fromAx = this.ax;
         tx.fromAy = this.ay;
+    }
+
+    /**
+     * Sign withdraw-bjj
+     * @param {Object} inputs - Zk inputs for the withdraw-bjj circuit
+     * @return {Object} Signature parameters
+     */
+    signWithdrawBjj(inputs) {
+        const h = withdrawUtils.hashInputsWithdrawBjj(inputs);
+        const signature = eddsa.signPoseidon(this.rollupPrvKey, h);
+        
+        return signature;
     }
 };
