@@ -86,12 +86,13 @@ module.exports = class HermezAccount {
 
     /**
      * Sign withdraw-bjj
-     * @param {Object} inputs - Zk inputs  for the withdraw-bjj circuit
-     * @return {Scalar} Signature parameters.
+     * @param {Object} inputs - Zk inputs for the withdraw-bjj circuit
+     * @return {Object} Signature parameters
      */
     signWithdrawBjj(inputs) {
         const h = withdrawUtils.hashInputsWithdrawBjj(inputs);
         const signature = eddsa.signPoseidon(this.rollupPrvKey, h);
+        
         return signature;
     }
 };
