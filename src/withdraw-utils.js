@@ -3,6 +3,8 @@ const Scalar = require("ffjavascript").Scalar;
 const utils = require("./utils");
 const Constants = require("./constants");
 const eddsa = require("circomlib").eddsa;
+const poseidonHash = require("circomlib").poseidon;
+
 /**
  * @param {Object} inputs - Object containing all withdraw inputs
  * @return {Scalar} hash global inputs with sha256 % rField
@@ -77,14 +79,35 @@ function hashInputsWithdrawBjj(inputs){
 }
 
 /**
+ * @param {String} ethAddrCallerAuth - thereum address that will call the smart contract
+ * @param {String} ethAddrBeneficiary - Ethereum address that will recieve the withdraw
+ * @param {String} rootState - State root of where with withdraw take place
+ * @param {Scalar} idx - Index leaf of the withdraw account
+ * @return {Scalar} poseidon hash of signature parameters
+ */
+function hashWithdrawBjjSignature(ethAddrCallerAuth, ethAddrBeneficiary, rootState, idx){
+    const h = poseidonHash([
+        Scalar.fromString(ethAddrCallerAuth || "0", 16),
+        Scalar.fromString(ethAddrBeneficiary || "0", 16),
+        rootState,
+        idx
+    ]);
+
+    return h;
+}
+
+/**
  * Verify the transaction signature of a withdraw bjj
- * @param {Object} inputs - Object containing all withdraw Bjj inputs 
+ * @param {String} ethAddrCallerAuth - thereum address that will call the smart contract
+ * @param {String} ethAddrBeneficiary - Ethereum address that will recieve the withdraw
+ * @param {Scalar} rootState - State root of where with withdraw take place
+ * @param {Scalar} idx - Index leaf of the withdraw account
  * @param {Object} hermezAccount - Hermez account object that sign the withdraw bjj
  * @param {Object} signature Signature parameters
  * @returns {Boolean} Return true if the verification is correct
  */
-function verifyWithdrawBjjSig(inputs, hermezAccount, signature){
-    const h = hashInputsWithdrawBjj(inputs);
+function verifyWithdrawBjjSig(ethAddrCallerAuth, ethAddrBeneficiary, rootState, idx, hermezAccount, signature){
+    const h = hashWithdrawBjjSignature(ethAddrCallerAuth, ethAddrBeneficiary, rootState, idx);
     const pubKey = [Scalar.fromString(hermezAccount.ax, 16), Scalar.fromString(hermezAccount.ay, 16)];
     return eddsa.verifyPoseidon(h, signature, pubKey);
 }
@@ -92,5 +115,6 @@ function verifyWithdrawBjjSig(inputs, hermezAccount, signature){
 module.exports = {
     hashInputsWithdraw,
     hashInputsWithdrawBjj,
+    hashWithdrawBjjSignature,
     verifyWithdrawBjjSig
 };

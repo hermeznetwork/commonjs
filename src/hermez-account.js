@@ -86,11 +86,14 @@ module.exports = class HermezAccount {
 
     /**
      * Sign withdraw-bjj
-     * @param {Object} inputs - Zk inputs for the withdraw-bjj circuit
+     * @param {String} ethAddrCallerAuth - Ethereum address that will call the smart contract
+     * @param {String} ethAddrBeneficiary - Ethereum address that will recieve the withdraw
+     * @param {Scalar} rootState - State root of where with withdraw take place
+     * @param {Scalar} idx - Index leaf of the withdraw account
      * @return {Object} Signature parameters
      */
-    signWithdrawBjj(inputs) {
-        const h = withdrawUtils.hashInputsWithdrawBjj(inputs);
+    signWithdrawBjj(ethAddrCallerAuth, ethAddrBeneficiary, rootState, idx) {
+        const h = withdrawUtils.hashWithdrawBjjSignature(ethAddrCallerAuth, ethAddrBeneficiary, rootState, idx);
         const signature = eddsa.signPoseidon(this.rollupPrvKey, h);
         
         return signature;

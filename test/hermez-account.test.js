@@ -62,19 +62,32 @@ describe("Hermez account", () => {
         const zkInputs = {
             rootState: Scalar.sub(Scalar.shl(1, 256), 1),
             ethAddrCaller: Scalar.sub(Scalar.shl(1, 160), 1),
+            ethAddrCallerAuth: Scalar.sub(Scalar.shl(1, 160), 1),
             ethAddrBeneficiary: Scalar.sub(Scalar.shl(1, 160), 1),
             tokenID: Scalar.sub(Scalar.shl(1, 32), 1),
             exitBalance: Scalar.sub(Scalar.shl(1, 192), 1),
             idx: Scalar.sub(Scalar.shl(1, 48), 1),
         };
 
-        const signature = account.signWithdrawBjj(zkInputs);
+        const signature = account.signWithdrawBjj(
+            zkInputs.ethAddrCallerAuth.toString(16), 
+            zkInputs.ethAddrBeneficiary.toString(16), 
+            zkInputs.rootState, 
+            zkInputs.idx
+        );
 
         expect(signature.R8[0]).to.be.not.equal(undefined);
         expect(signature.R8[1]).to.be.not.equal(undefined);
         expect(signature.S).to.be.not.equal(undefined);
 
         // Verify withdraw bjj signature
-        expect(withdrawUtils.verifyWithdrawBjjSig(zkInputs, account, signature)).to.be.equal(true);
+        expect(withdrawUtils.verifyWithdrawBjjSig(            
+            zkInputs.ethAddrCallerAuth.toString(16), 
+            zkInputs.ethAddrBeneficiary.toString(16), 
+            zkInputs.rootState, 
+            zkInputs.idx,
+            account, 
+            signature)
+        ).to.be.equal(true);
     });
 });
