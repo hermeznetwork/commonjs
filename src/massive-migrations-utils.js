@@ -5,7 +5,7 @@ const Constants = require("./constants");
  * @param {Object} inputs - Object containing all set-idx inputs
  * @return {Scalar} hash global inputs with sha256 % rField
  */
- function hashInputsSetIdx(inputs){
+function hashInputsSetIdx(inputs){
     const stateRootB = 256;
     const ethAddrB = 160;
     const tokenIDB = 32;

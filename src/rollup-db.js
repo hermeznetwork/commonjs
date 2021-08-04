@@ -212,7 +212,7 @@ class RollupDB {
      * @param {Scalar} numBatch - Batch number
      * @returns {Object} State tree information
      */
-     async getStateTreeInfo(idx, numBatch){
+    async getStateTreeInfo(idx, numBatch){
         const rootStateTree = await this.getStateRoot(numBatch);
         if (!rootStateTree) return null;
         const dbExit = new SMTTmpDb(this.db);
