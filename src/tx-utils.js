@@ -350,6 +350,24 @@ function decodeL2Tx(l2TxEncoded, nLevels){
 }
 
 /**
+ * Converts L2Data from its bigint encoding to its hexadecimal representation
+ * @param {Scalar} - L2 Data in its Scalar representation
+ * @param {Number} nLevels - merkle tree depth
+ * @param {String} - L2 Data in its hexadecimal string representation
+ */
+function scalarToHexL2Data(scalarL2Data, nLevels){
+    const idxB = nLevels;
+    const f40B = 40;
+    const userFeeB = 8;
+    const L2TxB = 2 * idxB + f40B + userFeeB;
+
+    const hexL2Data = scalarL2Data.toString(16);
+
+    return utils.padZeros(hexL2Data, L2TxB / 4);
+}
+
+
+/**
  * Build and sign message to be sent to the coordinator
  * This message will be used by the coordinator to create accounts
  * @param {Object} wallet - Signer ethers
@@ -422,5 +440,6 @@ module.exports = {
     decodeL2Tx,
     encodeL1Tx,
     decodeL1Tx,
+    scalarToHexL2Data,
     signBjjAuth
 };

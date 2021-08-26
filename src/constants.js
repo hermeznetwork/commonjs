@@ -23,6 +23,9 @@ module.exports.DB_NumBatch_AxAy = poseidonHash([string2Int("Rollup_DB_NumBatch_A
 module.exports.DB_NumBatch_EthAddr = poseidonHash([string2Int("Rollup_DB_NumBatch_EthAddr")]);
 module.exports.DB_InitialIdx = poseidonHash([string2Int("Rollup_DB_Initial_Idx")]);
 module.exports.DB_ChainID = poseidonHash([string2Int("Rollup_DB_ChainID")]);
+module.exports.DB_L1L2Data = poseidonHash([string2Int("Rollup_DB_L1L2Data")]);
+module.exports.DB_nLevels = poseidonHash([string2Int("Rollup_DB_nLevels")]);
+module.exports.DB_Migration_idx = poseidonHash([string2Int("Rollup_DB_Migration_idx")]);
 
 module.exports.defaultChainID = 0;
 module.exports.firstIdx = 255;
@@ -38,3 +41,5 @@ module.exports.onlyExitBjjAy = "0x1fffffffffffffffffffffffffffffffffffffffffffff
 module.exports.createAccountMsg = "Account creation";
 module.exports.EIP712Version = "1";
 module.exports.EIP712Provider = "Hermez Network";
+module.exports.minBatchesToMigrate = 10;
+module.exports.minTxToMigrate = 100;

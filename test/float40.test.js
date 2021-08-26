@@ -17,7 +17,7 @@ describe("Float40", function () {
             [0xFFFFFFFFFF, "343597383670000000000000000000000000000000"],
         ];
 
-        for (let i=0; i<testVector.length; i++) {
+        for (let i = 0; i < testVector.length; i++) {
             const fx = float40.float2Fix(testVector[i][0]);
             expect(fx.toString()).to.be.equal(testVector[i][1]);
 

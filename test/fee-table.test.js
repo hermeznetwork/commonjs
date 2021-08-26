@@ -267,7 +267,7 @@ describe("Fee table", function () {
             ["255", "9223372036854775808000000000000000000"],
         ];
 
-        const amount = Scalar.e(10**18);
+        const amount = Scalar.e(10 ** 18);
 
         for (let i = 0; i < testVector.length; i++){
             const feeSelector = testVector[i][0];
@@ -279,7 +279,7 @@ describe("Fee table", function () {
     });
 
     it("Compute fee error fee selected", () =>{
-        const amount = Scalar.e(10**18);
+        const amount = Scalar.e(10 ** 18);
         const nonExistingFeeSelected = 257;
         try {
             computeFee(amount, nonExistingFeeSelected);
