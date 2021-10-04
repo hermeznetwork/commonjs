@@ -25,7 +25,6 @@ class UpgradeDb {
         this.maxIdx = this.rollupDb.initialIdx;
         this.initIdx = Constants.firstIdx + 1;
         this.isUpgraded = false;
-        this.lastBatch = this.rollupDb.lastBatch;
         this.nLevels = nLevels;
 
         // compute number of proofs to build
@@ -65,7 +64,7 @@ class UpgradeDb {
             [Constants.DB_Master, this.currentBatch]
         ]);
 
-        const newRollupDB = await RollupDB(this.rollupDb.db, this.rollupDb.chainID);
+        const newRollupDB = await RollupDB(this.rollupDb.db, this.rollupDb.chainID, this.currentBatch - 1);
         this.isUpgraded = true;
 
         return newRollupDB;

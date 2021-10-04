@@ -2,6 +2,7 @@ const SMT = require("circomlib").SMT;
 const poseidonHash = require("circomlib").poseidon;
 const Scalar = require("ffjavascript").Scalar;
 const BabyJubJub = require("circomlib").babyJub;
+const commonjsOld = require("@hermeznetwork/commonjs-old");
 
 const SMTTmpDb = require("./smt-tmp-db");
 const BatchBuilder = require("./batch-builder");
@@ -10,12 +11,13 @@ const stateUtils = require("./state-utils");
 
 class RollupDB {
 
-    constructor(db, lastBatch, stateRoot, initialIdx, chainID) {
+    constructor(db, lastBatch, stateRoot, initialIdx, chainID, migrationBatch) {
         this.db = db;
         this.lastBatch = lastBatch || 0;
         this.stateRoot = stateRoot || 0;
         this.initialIdx = initialIdx || 255;
         this.chainID = chainID;
+        this.migrationBatch = migrationBatch || 0;
     }
 
     /**
@@ -187,17 +189,30 @@ class RollupDB {
      * @returns {Object} Exit tree information
      */
     async getExitInfo(idx, numBatch){
-        const stateRoot = await this.getStateRoot(numBatch);
-
-        if (!stateRoot) return null;
+        let merkleRoot;
+        if (numBatch > this.migrationBatch) {
+            merkleRoot = await this.getStateRoot(numBatch);
+        } else { 
+            // use legacy exit tree
+            const rootValues = await this.getStateRoot(numBatch);
+            merkleRoot = rootValues[1];
+        }
+        if (!merkleRoot) return null;
+        
         const dbState = new SMTTmpDb(this.db);
-        const tmpStateTree = new SMT(dbState, stateRoot);
+        const tmpStateTree = new SMT(dbState, merkleRoot);
         const resFindExit = await tmpStateTree.find(Scalar.e(idx));
         // Get leaf information
         if (resFindExit.found) {
             const foundValueId = poseidonHash([resFindExit.foundValue, idx]);
             const stateArray = await this.db.get(foundValueId);
-            const state = stateUtils.array2State(stateArray);
+            let state;
+            if (numBatch > this.migrationBatch) {
+                state = stateUtils.array2State(stateArray);
+            } else { 
+                // use legacy array2State
+                state = commonjsOld.stateUtils.array2State(stateArray);
+            }
             state.idx = Number(idx);
             resFindExit.state = state;
             delete resFindExit.foundValue;
@@ -411,7 +426,7 @@ class RollupDB {
     }
 }
 
-module.exports = async function(db, chainID) {
+module.exports = async function(db, chainID, migrationBatch) {
     const master = await db.get(Constants.DB_Master);
     if (!master) {
         const setChainID = chainID || Constants.defaultChainID;
@@ -426,5 +441,5 @@ module.exports = async function(db, chainID) {
     if (!stateRoot) {
         throw new Error("Database corrupted");
     }
-    return new RollupDB(db, master, stateRoot, initialIdx, dBchainID);
+    return new RollupDB(db, master, stateRoot, initialIdx, dBchainID, migrationBatch);
 };

@@ -4,11 +4,8 @@ const SMTMemDB = require("circomlib").SMTMemDB;
 const lodash = require("lodash");
 
 const Account = require("../index").HermezAccount;
-const RollupDB = require("../index").RollupDB;
 const Constants = require("../index").Constants;
-const txUtils = require("../index").txUtils;
 const stateUtils = require("../index").stateUtils;
-const float40 = require("../index").float40;
 const { depositTx } = require("./helpers/test-utils");
 const UpgradeDb = require("../index").upgradeDb;
 
@@ -260,6 +257,10 @@ describe("Rollup Db - batchbuilder", async function () {
         for (let key in s1_exit) {
             expect(s1_exitLegacy[key]).to.be.deep.equal(s1_exit[key]);
         }
+
+        // check that legacy and new db returns the same in the same exit information
+        const s1_exitLegacyV1 = await rollupDBUpgraded.getExitInfo(256, 2);
+        expect(lodash.isEqual(s1_exitLegacyV1, s1_exitLegacy)).to.be.equal(true);
 
         const s1_exitV1 = await rollupDBUpgraded.getExitInfo(256, 4);
         expect(lodash.isEqual(s1_exitV1.state, s1_2)).to.be.equal(true);
