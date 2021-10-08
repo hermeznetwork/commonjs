@@ -13,6 +13,7 @@ const float40 = require("../index").float40;
 const { depositTx, depositOnlyExitTx } = require("./helpers/test-utils");
 
 describe("Rollup Db - batchbuilder", async function(){
+    this.timeout(10000);
 
     const nLevels = 32;
     const maxTx = 8;
@@ -1156,6 +1157,97 @@ describe("Rollup Db - batchbuilder", async function(){
             expect(true).to.be.equal(false);
         } catch (error) {
             expect(error.message.includes("maxNumBatch must be less than currentBatch")).to.be.equal(true);
+        }
+    });
+
+    it("Should check L1L2Data", async () => {
+        // Start a new state
+        const db = new SMTMemDB();
+        const rollupDB = await RollupDB(db);
+        const bb = await rollupDB.buildBatch(maxTx, nLevels, maxL1Tx);
+
+        const account1 = new Account(1);
+        const account2 = new Account(2);
+
+        depositTx(bb, account1, 0, 1000);
+        depositTx(bb, account2, 0, 2000);
+
+        await bb.build();
+        await rollupDB.consolidate(bb);
+
+        // check rollupDB and batchBuilder L1L2Data
+        const numBatch1 = rollupDB.lastBatch;
+        const dataBB1 = bb.getL1L2TxsData();
+        const data1 = await rollupDB.getL1L2Data(numBatch1);
+        
+        for (let i = 0; i < dataBB1.length; i++){
+            expect(dataBB1[i].toString()).to.be.equal(Scalar.fromString(data1[i], 16).toString());
+        }
+
+        const bb2 = await rollupDB.buildBatch(maxTx, nLevels, maxL1Tx);
+
+        // l2tx tranfer
+        const tx = {
+            fromIdx: 256,
+            toIdx: 257,
+            tokenID: 1,
+            amount: Scalar.e(25),
+            nonce: 0,
+            userFee: 123, // effective fee is 4
+        };
+
+        // l2tx transferToEthAddr
+        const tx2 = {
+            fromIdx: 256,
+            toIdx: Constants.nullIdx,
+            toEthAddr: account2.ethAddr,
+            tokenID: 1,
+            amount: Scalar.e(179),
+            nonce: 1,
+            userFee: 139, // effective fee is 4
+        };
+
+        // l2tx exit
+        const tx3 = {
+            fromIdx: 256,
+            toIdx: Constants.exitIdx,
+            tokenID: 1,
+            amount: Scalar.e(42),
+            nonce: 2,
+            userFee: 125, // effective fee is 4
+        };
+
+        // force-transfer
+        const tx4 = {
+            fromIdx: 256,
+            loadAmountF: 0,
+            tokenID: 1,
+            fromBjjCompressed: 0,
+            fromEthAddr: account1.ethAddr,
+            toIdx: 257,
+            amount: 327,
+            userFee: 7,
+            onChain: true
+        };
+
+        account1.signTx(tx);
+        account1.signTx(tx2);
+        account1.signTx(tx3);
+        bb2.addTx(tx);
+        bb2.addTx(tx2);
+        bb2.addTx(tx3);
+        bb2.addTx(tx4);  
+        
+        await bb2.build();
+        await rollupDB.consolidate(bb2);
+
+        // check rollupDB and batchBuilder L1L2Data
+        const numBatch2 = rollupDB.lastBatch;
+        const dataBB2 = bb2.getL1L2TxsData();
+        const data2 = await rollupDB.getL1L2Data(numBatch2);
+
+        for (let i = 0; i < dataBB2.length; i++){
+            expect(dataBB2[i].toString()).to.be.equal(Scalar.fromString(data2[i], 16).toString());
         }
     });
 });

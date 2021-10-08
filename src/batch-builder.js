@@ -58,7 +58,7 @@ module.exports = class BatchBuilder {
         const inputTxsDataB = this.maxNTx * this.L2TxDataB;
         const inputFeeTxsB = this.totalFeeTransactions * this.idxB;
 
-        this.sha256InputsB = 2 * this.idxB + 2 * this.rootB + this.chainIDB + inputL1TxsFullB + inputTxsDataB + inputFeeTxsB;
+        this.sha256InputsB = 2 * this.maxIdxB + 2 * this.rootB + this.chainIDB + inputL1TxsFullB + inputTxsDataB + inputFeeTxsB;
     }
 
     /**
@@ -1144,6 +1144,7 @@ module.exports = class BatchBuilder {
 
         return utils.sha256Snark(finalStr);
     }
+
     /**
      * Computes string in hexadecimal of all pretended public inputs
      * @return {String} Public input string encoded as hexadecimal
@@ -1303,6 +1304,28 @@ module.exports = class BatchBuilder {
         const dataNopTx = utils.padZeros("",
             (this.maxNTx - this.offChainTxs.length) * (this.L2TxDataB / 4));
         return dataNopTx;
+    }
+
+    /**
+     * Return L1 & L2 data-availability
+     * @return {Array} L1 & L2 data-availability in an array
+     */
+    getL1L2TxsData() {
+        if (!this.builded) throw new Error("Batch must first be builded");
+
+        const arrayL1L2Data = [];
+        
+        for (let i = 0; i < this.onChainTxs.length; i++){
+            const tx = this.onChainTxs[i];
+            arrayL1L2Data.push(Scalar.fromString(txUtils.encodeL1Tx(tx, this.nLevels), 16));
+        }
+
+        for (let i = 0; i < this.offChainTxs.length; i++){
+            const tx = this.offChainTxs[i];
+            arrayL1L2Data.push(Scalar.fromString(txUtils.encodeL2Tx(tx, this.nLevels), 16));
+        }
+
+        return arrayL1L2Data;
     }
 
     /**

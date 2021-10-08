@@ -8,7 +8,7 @@
   },
   "scripts": {
     "setup": "npm i",
-    "eslint": "npx eslint src/**",
+    "eslint": "npx eslint src/** test/*.js test/**/*.js ",
     "test": "npx mocha ./test/*.test.js"
   },
   "author": "HermezDAO",

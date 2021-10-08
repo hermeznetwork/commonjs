@@ -7,6 +7,7 @@ const float40 = require("../index").float40;
 const Constants = require("../index").Constants;
 
 describe("Tx-utils", function () {
+
     it("tx compressed data", async () => {
         const tx = {
             chainID: 1,
@@ -66,7 +67,6 @@ describe("Tx-utils", function () {
     });
 
     it("encode decode l1-full-tx", async () => {
-
         const nLevels = 32;
         const tx = {
             toIdx: 257,
@@ -93,8 +93,8 @@ describe("Tx-utils", function () {
         const nLevels = 32;
 
         const tx = {
-            toIdx: 2**24 - 1,
-            fromIdx: 2**30,
+            toIdx: 2 ** 24 - 1,
+            fromIdx: 2 ** 30,
             amount: float40.round(Scalar.e("1982082637635472634987360")),
             userFee: 240,
         };
@@ -134,11 +134,11 @@ describe("Tx-utils", function () {
 
     it("encode decode l1-tx coordinator", async () => {
         const l1CoordinatorTx = {
-            tokenID: 2**16,
+            tokenID: 2 ** 16,
             fromBjjCompressed: "0x8efe299dccec53409219f4352d7cba8ae12b8e6d64e9352ebefec438092e8324",
             r: Scalar.shl(1, 240).toString(16),
             s: Scalar.sub(Scalar.shl(1, 256), 1).toString(16),
-            v: 2**7 - 3,
+            v: 2 ** 7 - 3,
         };
 
         const txData = `0x${txUtils.encodeL1CoordinatorTx(l1CoordinatorTx).toString(16)}`;
@@ -156,8 +156,8 @@ describe("Tx-utils", function () {
 
         const l1Tx = {
             effectiveAmount: float40.round(Scalar.e("1000000000")),
-            toIdx: 2**24 - 1,
-            fromIdx: 2**30 - 1
+            toIdx: 2 ** 24 - 1,
+            fromIdx: 2 ** 30 - 1
         };
 
         const txData = `0x${txUtils.encodeL1Tx(l1Tx, nLevels).toString(16)}`;
@@ -169,6 +169,24 @@ describe("Tx-utils", function () {
             equal(l1Tx.effectiveAmount.toString());
         expect(txDataDecoded.toIdx.toString()).to.be.equal(l1Tx.toIdx.toString());
         expect(txDataDecoded.fromIdx.toString()).to.be.equal(l1Tx.fromIdx.toString());
+    });
+
+    it("scalar to hexadecimal string L2Data", async () => {
+        const nLevels = 32;
+
+        let tx = {
+            toIdx: 2 ** 24 - 1,
+            fromIdx: 2 ** 30,
+            amount: float40.round(Scalar.e("1982082637635472634987360")),
+            userFee: 240,
+        };
+        
+        const txData = txUtils.encodeL2Tx(tx, nLevels);
+
+        const scalarTxData = Scalar.fromString(txData, 16);
+        const hexTxData = txUtils.scalarToHexL2Data(scalarTxData, nLevels);
+        
+        expect(txData).to.be.equal(hexTxData);
     });
 
     it("account creation authorization", async () => {

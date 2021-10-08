@@ -5,8 +5,10 @@ const BabyJubJub = require("circomlib").babyJub;
 
 const SMTTmpDb = require("./smt-tmp-db");
 const BatchBuilder = require("./batch-builder");
+const MigrationBuilder = require("./migration-builder");
 const Constants = require("./constants");
 const stateUtils = require("./state-utils");
+const txUtils = require("./tx-utils");
 
 class RollupDB {
 
@@ -31,6 +33,62 @@ class RollupDB {
     }
 
     /**
+     * Return a new MigrationBuilder with the current RollupDb state
+     * @param {Scalar} maxMigrationTx - Maximum number of transactions
+     * @param {Scalar} nLevels - Number of levels in the merkle tree
+     * @param {Object} sourceRollupDB - source rollupDB
+     * @param {Scalar} initBatchToMigrate - inital num batch to migrate
+     * @param {Scalar} finalBatchToMigrate - final num batch to migrate
+     */
+    async buildMigration(maxMigrationTx, nLevels, sourceRollupDB, initBatchToMigrate, finalBatchToMigrate) {
+        if (typeof this.migrationIdx === "undefined"){
+            throw new Error("MigrationIdx has not been setup");
+        }
+
+        return new MigrationBuilder(this, this.lastBatch + 1, this.stateRoot,
+            this.initialIdx, maxMigrationTx, nLevels, sourceRollupDB,
+            initBatchToMigrate, finalBatchToMigrate, this.migrationIdx);
+    }
+
+    /**
+     * Consolidate a migration batch by writing it in the DB
+     * @param {Object} migrationBatch - Migration builder object
+     */
+    async consolidateMigrate(migrationBatch) {
+        if (migrationBatch.batchNumber != this.lastBatch + 1) {
+            throw new Error("Updating the wrong batch");
+        }
+
+        if (!migrationBatch.builded) {
+            await migrationBatch.build();
+        }
+
+        const insertsState = Object.keys(migrationBatch.dbState.inserts).reverse().map(function(key) {
+            return [Scalar.e(key), migrationBatch.dbState.inserts[key]];
+        });
+
+        await this.db.multiIns([
+            ...insertsState,
+            [ Scalar.add(Constants.DB_Batch, migrationBatch.batchNumber), migrationBatch.stateTree.root],
+            [ Scalar.add(Constants.DB_InitialIdx, migrationBatch.batchNumber), migrationBatch.finalIdx],
+            [ Scalar.add(Constants.DB_nLevels, migrationBatch.batchNumber), migrationBatch.nLevels],
+            [ Constants.DB_Master, migrationBatch.batchNumber]
+        ]);
+
+        this.lastBatch = migrationBatch.batchNumber;
+        this.stateRoot = migrationBatch.stateTree.root;
+        this.initialIdx = migrationBatch.finalIdx;
+    }
+
+    /**
+     * Set migration index
+     * @param {Scalar} idx - merkle tree index on the source rollup
+     */
+    async setMigrationIdx(idx){
+        this.migrationIdx = idx;
+    }
+
+    /**
      * Consolidate a batch by writing it in the DB
      * @param {Object} bb - Batchbuilder object
      */
@@ -47,10 +105,14 @@ class RollupDB {
             return [Scalar.e(key), bb.dbState.inserts[key]];
         });
 
+        const l1L2Data = await bb.getL1L2TxsData();
+
         await this.db.multiIns([
             ...insertsState,
             [ Scalar.add(Constants.DB_Batch, bb.batchNumber), bb.stateTree.root],
             [ Scalar.add(Constants.DB_InitialIdx, bb.batchNumber), bb.finalIdx],
+            [ Scalar.add(Constants.DB_L1L2Data, bb.batchNumber), l1L2Data],
+            [ Scalar.add(Constants.DB_nLevels, bb.batchNumber), bb.nLevels],
             [ Constants.DB_Master, bb.batchNumber]
         ]);
 
@@ -215,8 +277,8 @@ class RollupDB {
     async getStateTreeInfo(idx, numBatch){
         const rootStateTree = await this.getStateRoot(numBatch);
         if (!rootStateTree) return null;
-        const dbExit = new SMTTmpDb(this.db);
-        const tmpStateTree = new SMT(dbExit, rootStateTree);
+        const dbState = new SMTTmpDb(this.db);
+        const tmpStateTree = new SMT(dbState, rootStateTree);
         const resFindState = await tmpStateTree.find(Scalar.e(idx));
         // Get leaf information
         if (resFindState.found) {
@@ -225,10 +287,31 @@ class RollupDB {
             const state = stateUtils.array2State(stateArray);
             state.idx = Number(idx);
             resFindState.state = state;
-            delete resFindState.foundValue;
+            // delete resFindState.foundValue;
         }
-        delete resFindState.isOld0;
+        // delete resFindState.isOld0;
         return resFindState;
+    }
+
+    /**
+     * Get L1-L2 data availability in an specific batch
+     * @param {Scalar} numBatch - Batch number
+     * @returns {Array} L1-L2 data availability
+     */
+    async getL1L2Data(numBatch){
+        const key = Scalar.add(Constants.DB_L1L2Data, numBatch);
+        const L1L2DataDB = await this.db.get(key);
+        if (!L1L2DataDB) return null;
+
+        const keyNlevels = Scalar.add(Constants.DB_nLevels, numBatch);
+        const nLevels = await this.db.get(keyNlevels);
+
+        const arrayL1L2Data = [];
+        for (let i = 0; i < L1L2DataDB.length; i++){
+            arrayL1L2Data.push(txUtils.scalarToHexL2Data(L1L2DataDB[i], nLevels));
+        }
+
+        return arrayL1L2Data;
     }
 
     /**
