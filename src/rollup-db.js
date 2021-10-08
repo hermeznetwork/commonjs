@@ -189,30 +189,49 @@ class RollupDB {
      * @returns {Object} Exit tree information
      */
     async getExitInfo(idx, numBatch){
-        let merkleRoot;
-        if (numBatch > this.migrationBatch) {
-            merkleRoot = await this.getStateRoot(numBatch);
+        if (numBatch <= this.migrationBatch) {
+            // use legacy exit tree approach
+            return await this.getExitInfoLegacy(idx, numBatch);
         } else { 
-            // use legacy exit tree
-            const rootValues = await this.getStateRoot(numBatch);
-            merkleRoot = rootValues[1];
+            const merkleRoot = await this.getStateRoot(numBatch);
+            if (!merkleRoot) return null;
+
+            const dbState = new SMTTmpDb(this.db);
+            const tmpStateTree = new SMT(dbState, merkleRoot);
+            const resFindExit = await tmpStateTree.find(Scalar.e(idx));
+            // Get leaf information
+            if (resFindExit.found) {
+                const foundValueId = poseidonHash([resFindExit.foundValue, idx]);
+                const stateArray = await this.db.get(foundValueId);
+                let state = stateUtils.array2State(stateArray);
+                state.idx = Number(idx);
+                resFindExit.state = state;
+                delete resFindExit.foundValue;
+            }
+            delete resFindExit.isOld0;
+            return resFindExit;
         }
-        if (!merkleRoot) return null;
+    }
+    /**
+     * Get exit information for some account in a specific batch 
+     * Using legacy exit tree approach
+     * @param {Number} idx - merkle tree index
+     * @param {Scalar} numBatch - Batch number
+     * @returns {Object} Exit tree information
+     */
+    async getExitInfoLegacy(idx, numBatch){
+        const rootValues = await this.getStateRoot(numBatch);
+        const rootExitTree = rootValues[1];
+        if (!rootExitTree) return null;
         
-        const dbState = new SMTTmpDb(this.db);
-        const tmpStateTree = new SMT(dbState, merkleRoot);
-        const resFindExit = await tmpStateTree.find(Scalar.e(idx));
+        const dbExit = new SMTTmpDb(this.db);
+        const tmpExitTree = new SMT(dbExit, rootExitTree);
+        const resFindExit = await tmpExitTree.find(Scalar.e(idx));
         // Get leaf information
         if (resFindExit.found) {
             const foundValueId = poseidonHash([resFindExit.foundValue, idx]);
             const stateArray = await this.db.get(foundValueId);
-            let state;
-            if (numBatch > this.migrationBatch) {
-                state = stateUtils.array2State(stateArray);
-            } else { 
-                // use legacy array2State
-                state = commonjsOld.stateUtils.array2State(stateArray);
-            }
+            const state = commonjsOld.stateUtils.array2State(stateArray);
             state.idx = Number(idx);
             resFindExit.state = state;
             delete resFindExit.foundValue;
