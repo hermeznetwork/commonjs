@@ -56,13 +56,11 @@ module.exports = class BatchBuilder {
         this.numBatchB = 32;
 
         this.L1TxFullB = this.fromEthAddrB + this.fromBjjCompressedB + 2*this.maxIdxB + this.tokenIDB + 2*this.f40B;
-        this.L1L2TxDataB = 2*this.idxB + this.f40B + this.feeB;
 
         const inputL1TxsFullB = this.maxL1Tx * this.L1TxFullB;
-        const inputTxsDataB = this.maxNTx * this.L1L2TxDataB;
         const inputFeeTxsB = this.totalFeeTransactions * this.idxB;
 
-        this.sha256InputsB = 2*this.idxB + 3*this.rootB + this.chainIDB + inputL1TxsFullB + inputTxsDataB + inputFeeTxsB;
+        this.sha256InputsB = 2*this.idxB + 3*this.rootB + this.chainIDB + inputL1TxsFullB + inputFeeTxsB;
     }
 
     /**
@@ -1235,9 +1233,6 @@ module.exports = class BatchBuilder {
         // L1TxData
         let L1FullTxsData = this.getL1TxsFullData();
 
-        // txsData
-        let txsData = this.getL1L2TxsData();
-
         // feeTxData
         const feeTxsData = this.getFeeTxsData();
 
@@ -1266,7 +1261,7 @@ module.exports = class BatchBuilder {
 
         // build input string
         const finalStr = finalIdxStr.concat(strOldStateRoot).concat(strNewStateRoot).concat(strNewExitRoot)
-            .concat(L1FullTxsData).concat(txsData).concat(feeTxsData).concat(strChainID).concat(strCurrentNumBatch);
+            .concat(L1FullTxsData).concat(feeTxsData).concat(strChainID).concat(strCurrentNumBatch);
 
         return finalStr;
     }
@@ -1368,46 +1363,6 @@ module.exports = class BatchBuilder {
             finalStr = finalStr + txUtils.encodeL1Tx(tx, this.nLevels);
         }
         return  finalStr;
-    }
-
-    /**
-     * Return nops tx data-availability
-     * fromIdx | toIdx | amountF | userFee == 0 | 0 | 0 | 0
-     * @return {String} nop tx data availability encoded as hexadecimal
-     */
-    _nopTxsData() {
-        if (!this.builded) throw new Error("Batch must first be builded");
-
-        const dataNopTx = utils.padZeros("",
-            (this.maxNTx - this.offChainTxs.length - this.onChainTxs.length) * (this.L1L2TxDataB / 4));
-        return  dataNopTx;
-    }
-
-    /**
-     * Return L1 & L2 data-availability padded with all unused L2 txs
-     * @return {String} L1 & L2 data-availability encoded as hexadecimal
-     */
-    getL1L2TxsData() {
-        if (!this.builded) throw new Error("Batch must first be builded");
-
-        const dataL1Tx = this._L1TxsData();
-        const dataL2Tx = this._L2TxsData();
-        const dataNopTx = this._nopTxsData();
-
-        return dataL1Tx.concat(dataL2Tx).concat(dataNopTx);
-    }
-
-    /**
-     * Return the L1 & L2 data-availability ready to send to the SC
-     * @return {String} L1 & L2 data encoded as hexadecimal
-     */
-    getL1L2TxsDataSM() {
-        if (!this.builded) throw new Error("Batch must first be builded");
-
-        const dataL1Tx = this._L1TxsData();
-        const dataL2Tx = this._L2TxsData();
-
-        return `0x${dataL1Tx.concat(dataL2Tx)}`;
     }
 
     /**

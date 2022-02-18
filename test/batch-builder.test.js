@@ -797,22 +797,6 @@ describe("Rollup Db - batchbuilder", async function(){
         "00000000" +
         "000000000000";
 
-        const resTxsData =
-            "0000000000000000000000000000" +
-            "0000000000000000000000000000" +
-            "0000010000000101000000006400" +
-            "000001000000010100000000327e" +
-            "0000000000000000000000000000" +
-            "0000000000000000000000000000" +
-            "0000000000000000000000000000" +
-            "0000000000000000000000000000";
-
-        const resTxsDataSM = "0x" +
-            "0000000000000000000000000000" +
-            "0000000000000000000000000000" +
-            "0000010000000101000000006400" +
-            "000001000000010100000000327e";
-
         const resFeeData = "00000104000001050000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
         + "0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
         + "0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
@@ -820,23 +804,19 @@ describe("Rollup Db - batchbuilder", async function(){
         + "000000000000000000000000000000000000000000000000000000000";
 
         const batchL1Data = await bb.getL1TxsFullData();
-        const batchTxsData = await bb.getL1L2TxsData();
-        const batchTxsDataSM = await bb.getL1L2TxsDataSM();
         const batchFeeData = await bb.getFeeTxsData();
 
         expect(resL1Data).to.be.equal(batchL1Data.toString());
-        expect(resTxsData).to.be.equal(batchTxsData.toString());
-        expect(resTxsDataSM).to.be.equal(batchTxsDataSM.toString());
         expect(resFeeData).to.be.equal(batchFeeData.toString());
 
         // input hash
-        const resInputHash = "12514623173775018362376319619542083816299433114758195525580469850532085559598";
+        const resInputHash = "3458885215479968911184210621510827723849325542189853870937075805424197015753";
 
         const batchInputHash = await bb.getHashInputs();
         expect(resInputHash).to.be.equal(batchInputHash.toString());
     });
 
-    it("Should check empty L1, L2, Fee data", async () => {
+    it("Should check empty L1, Fee data", async () => {
         // Start a new state
         const db = new SMTMemDB();
         const rollupDB = await RollupDB(db);
@@ -845,21 +825,18 @@ describe("Rollup Db - batchbuilder", async function(){
         await bb.build();
         await rollupDB.consolidate(bb);
 
-        // Check L1, L2, Fee data
+        // Check L1, Fee data
         const resL1Data = "0".repeat(864+6*6*2);
-        const resL2Data = "0".repeat(176+8*3*2);
         const resFeeData = "0".repeat(512);
 
         const batchL1Data = await bb.getL1TxsFullData();
-        const batchL2Data = await bb.getL1L2TxsData();
         const batchFeeData = await bb.getFeeTxsData();
 
         expect(batchL1Data.toString()).to.be.equal(resL1Data);
-        expect(batchL2Data.toString()).to.be.equal(resL2Data);
         expect(batchFeeData.toString()).to.be.equal(resFeeData);
 
         // input hash
-        const resInputHash = "9089028054588104462886776521837774802942784059202308502651705027859889271172";
+        const resInputHash = "19180511163151641727886597577570644697313744806197186474407541518839573172442";
 
         const batchInputHash = await bb.getHashInputs();
         expect(resInputHash).to.be.equal(batchInputHash.toString());
