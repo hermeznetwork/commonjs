@@ -56,13 +56,11 @@ module.exports = class BatchBuilder {
         this.numBatchB = 32;
 
         this.L1TxFullB = this.fromEthAddrB + this.fromBjjCompressedB + 2*this.maxIdxB + this.tokenIDB + 2*this.f40B;
-        this.L1L2TxDataB = 2*this.idxB + this.f40B + this.feeB;
 
         const inputL1TxsFullB = this.maxL1Tx * this.L1TxFullB;
-        const inputTxsDataB = this.maxNTx * this.L1L2TxDataB;
         const inputFeeTxsB = this.totalFeeTransactions * this.idxB;
 
-        this.sha256InputsB = 2*this.idxB + 3*this.rootB + this.chainIDB + inputL1TxsFullB + inputTxsDataB + inputFeeTxsB;
+        this.sha256InputsB = 2*this.idxB + 3*this.rootB + this.chainIDB + inputL1TxsFullB + inputFeeTxsB;
     }
 
     /**
@@ -1235,9 +1233,6 @@ module.exports = class BatchBuilder {
         // L1TxData
         let L1FullTxsData = this.getL1TxsFullData();
 
-        // txsData
-        let txsData = this.getL1L2TxsData();
-
         // feeTxData
         const feeTxsData = this.getFeeTxsData();
 
@@ -1266,7 +1261,7 @@ module.exports = class BatchBuilder {
 
         // build input string
         const finalStr = finalIdxStr.concat(strOldStateRoot).concat(strNewStateRoot).concat(strNewExitRoot)
-            .concat(L1FullTxsData).concat(txsData).concat(feeTxsData).concat(strChainID).concat(strCurrentNumBatch);
+            .concat(L1FullTxsData).concat(feeTxsData).concat(strChainID).concat(strCurrentNumBatch);
 
         return finalStr;
     }
